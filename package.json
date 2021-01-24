@@ -1,5 +1,5 @@
 {
-  "name": "js-intel-x86-assembler",
+  "name": "assembler-x86",
   "version": "1.0.0",
   "description": "An Intel x86 assembler, generates opCodes from assembly",
   "main": "lib/index.js",
