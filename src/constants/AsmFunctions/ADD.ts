@@ -2,7 +2,6 @@ import {AsmFunction} from './index';
 import {checkOp} from '../../functions/checkOperand';
 import {checkType} from '../../functions/checkType';
 import {rotate} from '../../functions/rotate';
-import {Table} from '32bit-adressing-table-modrm';
 
 
 export const ADD: AsmFunction = {
@@ -15,7 +14,7 @@ export const ADD: AsmFunction = {
             const op2String = () => rotate(operand2).toLocaleUpperCase();
             const op2Type = checkType(operand2);
             const op1Type = checkType(operand1);
-            const getValueFromTable = () => Table.getValueFromTable(operand1, '0');
+            // const getValueFromTable = () => Table.getValueFromTable(operand1, '0');
             if (operand1 === 'al') {
                 if (op2Type === '8bitH') {
                     return '04' + op2String();
