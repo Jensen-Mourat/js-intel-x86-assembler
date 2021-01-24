@@ -19,8 +19,13 @@
     "type": "git",
     "url": "git+https://github.com/Jensen-Mourat/js-intel-x86-assembler.git"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": [
+    "Assembly",
+    "Js",
+    "Intel",
+    "x86"
+  ],
+  "author": "Jensen Mourat",
   "license": "ISC",
   "bugs": {
     "url": "https://github.com/Jensen-Mourat/js-intel-x86-assembler/issues"
@@ -31,8 +36,5 @@
     "tslint": "^6.1.3",
     "tslint-config-prettier": "^1.18.0",
     "typescript": "^4.1.3"
-  },
-  "dependencies": {
-    "32bit-adressing-table-modrm": "^1.0.5"
   }
 }
