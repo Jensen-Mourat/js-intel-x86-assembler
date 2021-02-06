@@ -1,4 +1,8 @@
 export const rotate = (op: string): string => {
+    const length = op.length;
+    if(length % 2 !== 0){
+        op = '0' + op;
+    }
     if(op.length <= 2){
         return op;
     }

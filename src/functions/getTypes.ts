@@ -3,31 +3,45 @@ import {EightBitRegisters, SixteenBitRegisters, ThirtyTwoBitRegisters} from '../
 
 export const getTypes = (op: string): operandType[] => {
     if (EightBitRegisters.has(op)) {
-        return [op as operandType, 'r8', 'imm8'];
+        return [op as operandType, 'r8'];
     }
     if (SixteenBitRegisters.has(op)) {
-        return [op as operandType, 'r16', 'imm16'];
+        return [op as operandType, 'r16'];
     }
     if (ThirtyTwoBitRegisters.has(op)) {
-        return [op as operandType, 'r32', 'imm32'];;
+        return [op as operandType, 'r32'];
     }
     if (op.includes('[')) {
         const withoutBrackets = op.replace('[', '').replace(']', '');
-        if (EightBitRegisters.has(withoutBrackets)) {
-            return ['m8'];
+        const isMemoryType = getMemoryType(withoutBrackets);
+        if (isMemoryType) {
+            return isMemoryType;
         }
-        if (SixteenBitRegisters.has(withoutBrackets)) {
-            return ['m16'];
+        if (withoutBrackets.includes('+')) {
+            const [base, disp] = withoutBrackets.split('+');
+            const checkBase = getMemoryType(base)!;
+            const dispLength = length(disp);
+            return [...checkBase, `[${base}]+disp${dispLength === '16' ? '32' : dispLength}`] as operandType[];
         }
-        if (ThirtyTwoBitRegisters.has(withoutBrackets)) {
-            return ['m32'];
-        }
-        return [`m${length(withoutBrackets)}`as operandType] ;
+        return [`m${length(withoutBrackets)}`, `disp32`] as operandType [];
     }
-    return [`imm${length(op)}`as operandType];
+    return [`imm${length(op)}` as operandType];
 };
 
-const length = (s: string) => {
+const getMemoryType = (s: string): operandType[] | undefined => {
+    if (EightBitRegisters.has(s)) {
+        return ['m8', 'mr8'];
+    }
+    if (SixteenBitRegisters.has(s)) {
+        return ['m16', 'mr16'];
+    }
+    if (ThirtyTwoBitRegisters.has(s)) {
+        return ['m32', 'mr32'];
+    }
+    return undefined;
+};
+
+export const length = (s: string) => {
     if (s.length <= 2) {
         return '8';
     }
@@ -72,3 +86,24 @@ export type operandType =
     | 'imm8'
     | 'imm16'
     | 'imm32'
+    | 'mr8'
+    | 'mr16'
+    | 'mr32'
+    | 'disp32'
+    | '[sib]'
+    | '[eax]+disp8'
+    | '[ecx]+disp8'
+    | '[edx]+disp8'
+    | '[ebx]+disp8'
+    | '[sib]+disp8'
+    | '[ebp]+disp8'
+    | '[esi]+disp8'
+    | '[edi]+disp8'
+    | '[eax]+disp32'
+    | '[ecx]+disp32'
+    | '[edx]+disp32'
+    | '[ebx]+disp32'
+    | '[sib]+disp32'
+    | '[ebp]+disp32'
+    | '[esi]+disp32'
+    | '[edi]+disp32'
