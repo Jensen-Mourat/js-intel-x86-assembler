@@ -1,5 +1,12 @@
-import {checkOp} from './checkOperand';
 import {EightBitRegisters, SixteenBitRegisters, ThirtyTwoBitRegisters} from '../constants/registers';
+import {
+    displacementOnlyRegex,
+    firstCharacterAfterStar, regConstant,
+    regDispRegex,
+    registerOnlyRegex,
+    regRegDispRegex,
+    regRegOnlyRegex,
+} from '../constants/regex';
 
 export const getTypes = (op: string): operandType[] => {
     if (EightBitRegisters.has(op)) {
@@ -13,20 +20,66 @@ export const getTypes = (op: string): operandType[] => {
     }
     if (op.includes('[')) {
         const withoutBrackets = op.replace('[', '').replace(']', '');
-        const isMemoryType = getMemoryType(withoutBrackets);
-        if (isMemoryType) {
-            return isMemoryType;
+        switch (matchRegex(withoutBrackets)) {
+            case 'reg':
+                return getMemoryType(withoutBrackets)!;
+            case 'disp':
+                return [`m${length(withoutBrackets)}`, `disp32`] as operandType [];
+            case 'reg*constant':
+                const c = withoutBrackets.match(firstCharacterAfterStar);
+                const r = withoutBrackets.split('*')[0];
+                return [...getMemoryType(r)!, '[sib]', '[*]', `[${r + (c ? '*' + c[1] : '')}]`, 'reg*constant'] as operandType[];
+            case 'reg+disp':
+                const [reg, disp] = withoutBrackets.split('+');
+                const checkBase = getMemoryType(reg)!;
+                const dispLength = length(disp);
+                return [...checkBase, `[${reg}]+disp${dispLength === '16' && !checkBase.includes('mr16') ? '32' : dispLength}`] as operandType[];
+            case 'reg+reg':
+                const constant = withoutBrackets.match(firstCharacterAfterStar);
+                const [reg1, reg2] = withoutBrackets.split('*')[0].split('+');
+                return ['[sib]', `[${reg1}]`, `[${reg2 + (constant ? '*' + constant[1] : '')}]`, 'reg+reg'] as operandType[];
+            case 'reg+reg+disp':
+                const cons = withoutBrackets.match(firstCharacterAfterStar);
+                withoutBrackets.replace(firstCharacterAfterStar, '');
+                const [r1, r2, d] = withoutBrackets.split('+');
+                const l = length(d);
+                return ['[sib]+disp' + (l === '16' ? '32' : l), `[${r1}]`, `[${r2 + (cons ? '*' + cons[1] : '')}]`] as operandType[];
         }
-        if (withoutBrackets.includes('+')) {
-            const [base, disp] = withoutBrackets.split('+');
-            const checkBase = getMemoryType(base)!;
-            const dispLength = length(disp);
-            return [...checkBase, `[${base}]+disp${dispLength === '16' ? '32' : dispLength}`] as operandType[];
-        }
-        return [`m${length(withoutBrackets)}`, `disp32`] as operandType [];
     }
     return [`imm${length(op)}` as operandType];
 };
+
+export const matchRegex = (s: string): displacementTypes => {
+    // console.log(regRegOnlyRegex.source)
+    if (registerOnlyRegex.test(s)) {
+        return 'reg';
+    }
+    if (displacementOnlyRegex.test(s)) {
+        return 'disp';
+    }
+    if (regConstant.test(s)) {
+        return 'reg*constant';
+    }
+    if (regDispRegex.test(s)) {
+        return 'reg+disp';
+    }
+    if (regRegOnlyRegex.test(s)) {
+        return 'reg+reg';
+    }
+    if (regRegDispRegex.test(s)) {
+        return 'reg+reg+disp';
+    }
+    throw new Error('Invalid operand!');
+};
+
+export type displacementTypes =
+    'reg'
+    | 'reg+disp'
+    | 'disp'
+    | 'reg+reg'
+    | 'reg+reg+disp'
+    | 'reg*constant'
+    | 'reg*constant+disp'
 
 const getMemoryType = (s: string): operandType[] | undefined => {
     if (EightBitRegisters.has(s)) {
@@ -41,6 +94,7 @@ const getMemoryType = (s: string): operandType[] | undefined => {
     return undefined;
 };
 
+
 export const length = (s: string) => {
     if (s.length <= 2) {
         return '8';
@@ -48,9 +102,7 @@ export const length = (s: string) => {
     if (s.length <= 4) {
         return '16';
     }
-    if (s.length <= 8) {
-        return '32';
-    }
+    return '32';
 };
 export type operandType =
     'eax'
@@ -107,3 +159,35 @@ export type operandType =
     | '[ebp]+disp32'
     | '[esi]+disp32'
     | '[edi]+disp32'
+    | '[eax]'
+    | '[ecx]'
+    | '[edx]'
+    | '[ebx]'
+    | '[ebp]'
+    | '[esi]'
+    | '[edi]'
+    | '[eax*2]'
+    | '[ecx*2]'
+    | '[edx*2]'
+    | '[ebx*2]'
+    | '[ebp*2]'
+    | '[esi*2]'
+    | '[edi*2]'
+    | '[eax*4]'
+    | '[ecx*4]'
+    | '[edx*4]'
+    | '[ebx*4]'
+    | '[ebp*4]'
+    | '[esi*4]'
+    | '[edi*4]'
+    | '[eax*8]'
+    | '[ecx*8]'
+    | '[edx*8]'
+    | '[ebx*8]'
+    | '[ebp*8]'
+    | '[esi*8]'
+    | '[edi*8]'
+    | 'none'
+    | displacementTypes
+
+

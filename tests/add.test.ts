@@ -2,7 +2,6 @@ import {suite, test} from '@testdeck/mocha';
 import * as _chai from 'chai';
 import {ADD} from '../src/constants/AsmFunctions/ADD';
 import {PARAMETERS} from './parameters';
-import {rotate} from '../src/functions/rotate';
 
 _chai.should();
 const {expect} = _chai;
@@ -136,6 +135,20 @@ class addTest {
         (() => ADD.generateMachineCode('ax', 'al')).should.throw();
     }
 
+    @test 'r16 with disp only'() {
+        ADD.generateMachineCode('ax', '[12]').should.equal('66030512000000');
+        ADD.generateMachineCode('ax', '[1232]').should.equal('66030532120000');
+        ADD.generateMachineCode('ax', '[1]').should.equal('66030501000000');
+        ADD.generateMachineCode('ax', '[12345678]').should.equal('66030578563412');
+        ADD.generateMachineCode('ax', '[12345678]').should.equal('66030578563412');
+    }
+
+    @test 'r16 with reg + disp'() {
+        ADD.generateMachineCode('ax', '[si+12]').should.equal('6766034412');
+        ADD.generateMachineCode('ax', '[si+1122]').should.equal('676603842211');
+        (() => ADD.generateMachineCode('ax', '[si+112234]')).should.throw;
+    }
+
     @test 'r32, second operand r'() {
         ADD.generateMachineCode('eax', 'eax').should.equal('01C0');
         ADD.generateMachineCode('ebx', 'ebx').should.equal('01DB');
@@ -158,12 +171,50 @@ class addTest {
         (() => ADD.generateMachineCode('eax', '[al]')).should.throw();
     }
 
-    @test 'displacement'() {
+    @test 'r32 with disp only'() {
         ADD.generateMachineCode('eax', '[1]').should.equal('030501000000');
+        ADD.generateMachineCode('eax', '[12]').should.equal('030512000000');
+        ADD.generateMachineCode('eax', '[123]').should.equal('030523010000');
         ADD.generateMachineCode('eax', '[1234]').should.equal('030534120000');
-        ADD.generateMachineCode('eax', '[eax + 1]').should.equal('034001');
-        ADD.generateMachineCode('eax', '[eax + 1234]').should.equal('038034120000');
-        ADD.generateMachineCode('eax', '[eax + 12]').should.equal('034012');
-        ADD.generateMachineCode('eax', '[eax + 12345678]').should.equal('038078563412');
-   }
+        ADD.generateMachineCode('eax', '[12345]').should.equal('030545230100');
+        ADD.generateMachineCode('eax', '[1234567]').should.equal('030567452301');
+        ADD.generateMachineCode('eax', '[12345678]').should.equal('030578563412');
+        ADD.generateMachineCode('ebx', '[1234567]').should.equal('031D67452301');
+        ADD.generateMachineCode('ecx', '[1234567]').should.equal('030D67452301');
+    }
+
+    @test 'r32 with base and + disp'() {
+        ADD.generateMachineCode('eax', '[eax+1]').should.equal('034001');
+        ADD.generateMachineCode('eax', '[eax+12]').should.equal('034012');
+        ADD.generateMachineCode('eax', '[eax+123]').should.equal('038023010000');
+        ADD.generateMachineCode('eax', '[eax+1234]').should.equal('038034120000');
+        ADD.generateMachineCode('eax', '[eax+12345]').should.equal('038045230100');
+        ADD.generateMachineCode('eax', '[eax+123456]').should.equal('038056341200');
+        ADD.generateMachineCode('eax', '[eax+1234567]').should.equal('038067452301');
+        ADD.generateMachineCode('eax', '[eax+12345678]').should.equal('038078563412');
+        ADD.generateMachineCode('ebx', '[eax+12345678]').should.equal('039878563412');
+        ADD.generateMachineCode('ecx', '[eax+12345678]').should.equal('038878563412');
+    }
+
+
+    @test 'r32 with base*constant'() {
+        ADD.generateMachineCode('eax', '[eax*2]').should.equal('03044500000000');
+        ADD.generateMachineCode('eax', '[eax*1]').should.equal('03040500000000');
+        ADD.generateMachineCode('ebx', '[ecx*2]').should.equal('031C4D00000000');
+        ADD.generateMachineCode('edx', '[ebx*2]').should.equal('03145D00000000');
+        ADD.generateMachineCode('ebp', '[esi*2]').should.equal('032C7500000000');
+        ADD.generateMachineCode('edi', '[ebp*2]').should.equal('033C6D00000000');
+        ADD.generateMachineCode('eax', '[eax*4]').should.equal('03048500000000');
+        ADD.generateMachineCode('ebx', '[ecx*4]').should.equal('031C8D00000000');
+        ADD.generateMachineCode('edx', '[ebx*4]').should.equal('03149D00000000');
+        ADD.generateMachineCode('ebp', '[esi*4]').should.equal('032CB500000000');
+        ADD.generateMachineCode('edi', '[ebp*4]').should.equal('033CAD00000000');
+        ADD.generateMachineCode('eax', '[eax*8]').should.equal('0304C500000000');
+        ADD.generateMachineCode('ebx', '[ecx*8]').should.equal('031CCD00000000');
+        ADD.generateMachineCode('edx', '[ebx*8]').should.equal('0314DD00000000');
+        ADD.generateMachineCode('ebp', '[esi*8]').should.equal('032CF500000000');
+        ADD.generateMachineCode('edi', '[ebp*8]').should.equal('033CED00000000');
+    }
+
+
 }

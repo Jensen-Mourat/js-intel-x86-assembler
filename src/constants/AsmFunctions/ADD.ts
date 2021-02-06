@@ -5,6 +5,7 @@ import {HashMap} from '../../helper/hashMap';
 import {SixteenBitRegisters, ThirtyTwoBitRegisters} from '../registers';
 import {rotate} from '../../functions/rotate';
 import has = Reflect.has;
+import {everythingAfterSlashRegex} from '../regex';
 
 const ADD_TABLE = new HashMap<InstructionStructure, string>()
     .set({operation: 'add', operand1: 'al', operand2: 'imm8'}, '04 ib')
@@ -60,14 +61,22 @@ export const formatOp = (opCode: string, op1?: string, op2?: string, op1Type?: o
     if (opCode.includes('id')) {
         op2 = makeValueToByte(op2!, 8);
     }
+    if (op2Type?.includes('reg*constant')) {
+        op2 = '00000000';
+    }
     if (hasType(op2Type, 'disp')) {
         if (hasType(op2Type, '+')) {
             op2 = removeBrackets(op2!).split('+')[1];
             if (hasType(op2Type, 'disp32')) {
-                op2 = rotate(makeValueToByte(op2, 8));
-            } else {
+                op2 = makeValueToByte(op2, 8);
+            }
+            if (hasType(op2Type, 'disp16')) {
+                op2 = makeValueToByte(op2, 4);
+            }
+            if (hasType(op2Type, 'disp8')) {
                 op2 = makeValueToByte(op2, 2);
             }
+            op2 = rotate(op2);
         }
         if (hasType(op2Type, 'disp32') && !hasType(op2Type, '+')) {
             op2 = removeBrackets(op2!);
@@ -109,18 +118,25 @@ const makeValueToByte = (v: string, byte: 2 | 4 | 8) => {
 };
 
 export const getRMByte = (s: string): [string, string | undefined] => {
-    const regex = new RegExp(/\/(.*)/);
     let val = s;
-    const match = s.match(regex);
+    const match = s.match(everythingAfterSlashRegex);
     const modRmByte = match ? match[1].replace('/', '') : undefined;
     if (modRmByte) {
-        val = s.replace(regex, '').replace('/', '');
+        val = s.replace(everythingAfterSlashRegex, '').replace('/', '');
     }
     return [val.trim(), modRmByte];
 };
 
 export const convertModRmByte = (opCode: string, rmByte: string, op: { op2: string | undefined; op1: string | undefined; type2: operandType[] | undefined; type1: operandType[] | undefined }): string => {
     let op2value;
+    if (hasType(op.type2, 'sib')) {
+        const index = op.type2?.findIndex(o => o.includes('sib'))!;
+        const v1 = Table.getValueFromTable(op.op1!, op.type2[index]!);
+        const v2 = Table.getValueFromTable(op.type2[index + 1]!, op.type2[index + 2]!, '32sib');
+        if (v1 && v2) {
+            return opCode + v1 + v2 + (!op.type2?.includes('reg+reg') ? op.op2 : '');
+        }
+    }
     if (hasType(op.type2, 'disp')) {
         op2value = op.op2;
         if (op.op2?.includes('+')) {
@@ -185,6 +201,10 @@ export const getOpCode = (table: HashMap<InstructionStructure, string>, ins: str
                 }
                 if (op === 'r32' && (op2.includes('disp32') || op2.includes('mr16'))) {
                     opCode = table.get({operation, operand1: op, operand2: 'm32'});
+                    return !!opCode;
+                }
+                if (op === 'r16' && (op2.includes('m8') || op2.includes('m32'))) {
+                    opCode = table.get({operation, operand1: op, operand2: 'm16'});
                     return !!opCode;
                 }
                 return false;
