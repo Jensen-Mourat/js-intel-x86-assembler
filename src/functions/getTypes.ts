@@ -1,12 +1,14 @@
 import {EightBitRegisters, SixteenBitRegisters, ThirtyTwoBitRegisters} from '../constants/registers';
 import {
     displacementOnlyRegex,
-    firstCharacterAfterStar, regConstant,
+    firstCharacterAfterStar, regConstantOnly, regConstDisp,
     regDispRegex,
     registerOnlyRegex,
     regRegDispRegex,
     regRegOnlyRegex,
 } from '../constants/regex';
+import {TwosComplementBuffer} from 'twos-complement-buffer';
+import {makeValueToByte} from '../constants/AsmFunctions/ADD';
 
 export const getTypes = (op: string): operandType[] => {
     if (EightBitRegisters.has(op)) {
@@ -19,34 +21,114 @@ export const getTypes = (op: string): operandType[] => {
         return [op as operandType, 'r32'];
     }
     if (op.includes('[')) {
-        const withoutBrackets = op.replace('[', '').replace(']', '');
+        let withoutBrackets = op.replace('[', '').replace(']', '');
+        const isNegativeDisplacement = op.includes('-');
+        const containsNegativeDisplacement = [];
+        let is2s8bit = false;
+        if (isNegativeDisplacement) {
+            withoutBrackets = withoutBrackets.replace('-', '+');
+            if (withoutBrackets[0] === '+') {
+                withoutBrackets = withoutBrackets.replace('+', '');
+            }
+            containsNegativeDisplacement.push('neg');
+        }
         switch (matchRegex(withoutBrackets)) {
             case 'reg':
                 return getMemoryType(withoutBrackets)!;
             case 'disp':
-                return [`m${length(withoutBrackets)}`, `disp32`] as operandType [];
+                return [...containsNegativeDisplacement, `m${length(withoutBrackets)}`, `disp32`] as operandType [];
             case 'reg*constant':
                 const c = withoutBrackets.match(firstCharacterAfterStar);
                 const r = withoutBrackets.split('*')[0];
-                return [...getMemoryType(r)!, '[sib]', '[*]', `[${r + (c ? '*' + c[1] : '')}]`, 'reg*constant'] as operandType[];
+                return [...containsNegativeDisplacement, ...getMemoryType(r)!, '[sib]', '[*]', `[${r + (c ? '*' + c[1] : '')}]`, 'reg*constant'] as operandType[];
             case 'reg+disp':
                 const [reg, disp] = withoutBrackets.split('+');
-                const checkBase = getMemoryType(reg)!;
+                const hex = parseInt(disp, 16);
+                if (!hex) { // check if disp === 0
+                    return ['zero', ...containsNegativeDisplacement, ...getTypes(`[${reg}]`)] as operandType[];
+                }
                 const dispLength = length(disp);
-                return [...checkBase, `[${reg}]+disp${dispLength === '16' && !checkBase.includes('mr16') ? '32' : dispLength}`] as operandType[];
+                if (dispLength === '8') { // check is 2s complement present for 8 bit disp
+                    if (isNegativeDisplacement) {
+                        if (hex > parseInt('80', 16)) {
+                            is2s8bit = true;
+                        }
+                    } else {
+                        if (hex > parseInt('7f', 16)) {
+                            is2s8bit = true;
+                        }
+                    }
+                }
+                const checkBase = getMemoryType(reg)!;
+                let dispString;
+                if (checkBase.includes('mr16')) {
+                    dispString = `[${reg}]+disp${dispLength === '32' ? '16' : is2s8bit ? '32' : dispLength}`;
+                } else {
+                    dispString = `[${reg}]+disp${dispLength === '16' ? '32' : is2s8bit ? '32' : dispLength}`;
+                }
+                return [...containsNegativeDisplacement, ...checkBase, dispString] as operandType[];
             case 'reg+reg':
                 const constant = withoutBrackets.match(firstCharacterAfterStar);
                 const [reg1, reg2] = withoutBrackets.split('*')[0].split('+');
-                return ['[sib]', `[${reg1}]`, `[${reg2 + (constant ? '*' + constant[1] : '')}]`, 'reg+reg'] as operandType[];
+                const reg1Type = getMemoryType(reg1);
+                let retArr = [...containsNegativeDisplacement, ...reg1Type!, '[sib]', `[${reg1}]`, `[${reg2 + (constant ? '*' + constant[1] : '')}]`, 'reg+reg'] as operandType[];
+                if (reg1Type?.includes('mr16')) {
+                    retArr = retArr.filter(s => s !== '[sib]');
+                }
+                return retArr;
             case 'reg+reg+disp':
-                const cons = withoutBrackets.match(firstCharacterAfterStar);
-                withoutBrackets.replace(firstCharacterAfterStar, '');
                 const [r1, r2, d] = withoutBrackets.split('+');
+                const h = parseInt(d, 16);
+                if (!h) { // check if d === 0
+                    return ['zero', ...containsNegativeDisplacement, ...getTypes(`[${r1}+${r2}]`)] as operandType[];
+                }
                 const l = length(d);
-                return ['[sib]+disp' + (l === '16' ? '32' : l), `[${r1}]`, `[${r2 + (cons ? '*' + cons[1] : '')}]`] as operandType[];
+                if (l === '8') { // check is 2s complement present for 8 bit disp
+                    if (isNegativeDisplacement) {
+                        if (h > parseInt('80', 16)) {
+                            is2s8bit = true;
+                        }
+                    } else {
+                        if (h > parseInt('7f', 16)) {
+                            is2s8bit = true;
+                        }
+                    }
+                }
+                const t = getMemoryType(r1);
+                const tempArr = [];
+                if (t?.includes('mr16')) { //change sib and length for mr16
+                    tempArr.push(`[${r1}+${r2}]+disp` + (l === '32' ? '16' : is2s8bit ? '32' : l));
+                } else {
+                    tempArr.push('[sib]+disp' + (l === '16' ? '32' : is2s8bit ? '32' : l));
+                }
+                return [...containsNegativeDisplacement, ...t!, ...tempArr, `[${r1}]`, `[${r2}]`, 'reg+reg+disp'] as operandType[];
+            case 'reg*constant+disp':
+                const [s, val] = withoutBrackets.split('+');
+                const hexVal = parseInt(val, 16);
+                const types = getTypes(`[${s}]`);
+                if (!hexVal) { // check if d === 0
+                    return ['zero', ...containsNegativeDisplacement, ...types] as operandType[];
+                }
+                return [...containsNegativeDisplacement, ...types.filter(o => o !== 'reg*constant'), 'disp32'] as operandType[];
         }
     }
     return [`imm${length(op)}` as operandType];
+};
+
+export const convertToTwosComp = (s: string) => {
+    s = makeHexLengthEven(s);
+    const hexL = s.length;
+    const hex = parseInt(s, 16);
+    const maxHex = parseInt('ffffffff'.slice(0, hexL), 16);
+    const twosC = (maxHex - hex + 1).toString(16).toUpperCase();
+    return makeValueToByte(twosC, hexL as 2 | 4 | 8);
+};
+
+const makeHexLengthEven = (s: string) => {
+    if (s.length % 2 !== 0) {
+        return 0 + s;
+    }
+    return s;
 };
 
 export const matchRegex = (s: string): displacementTypes => {
@@ -57,7 +139,7 @@ export const matchRegex = (s: string): displacementTypes => {
     if (displacementOnlyRegex.test(s)) {
         return 'disp';
     }
-    if (regConstant.test(s)) {
+    if (regConstantOnly.test(s)) {
         return 'reg*constant';
     }
     if (regDispRegex.test(s)) {
@@ -68,6 +150,9 @@ export const matchRegex = (s: string): displacementTypes => {
     }
     if (regRegDispRegex.test(s)) {
         return 'reg+reg+disp';
+    }
+    if (regConstDisp.test(s)) {
+        return 'reg*constant+disp';
     }
     throw new Error('Invalid operand!');
 };
@@ -188,6 +273,8 @@ export type operandType =
     | '[esi*8]'
     | '[edi*8]'
     | 'none'
+    | 'neg'
+    | 'zero'
     | displacementTypes
 
 

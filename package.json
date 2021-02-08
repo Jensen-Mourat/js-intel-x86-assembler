@@ -45,6 +45,7 @@
     "typescript": "^4.1.3"
   },
   "dependencies": {
-    "32bit-adressing-table-modrm": "^1.0.9"
+    "32bit-adressing-table-modrm": "^1.0.10",
+    "twos-complement-buffer": "^1.0.0"
   }
 }

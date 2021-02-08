@@ -15,4 +15,6 @@ export const regDispRegex = new RegExp('^(' + registerRegex.source + '\\\+' + di
 const regRegRegex = new RegExp(registerRegex.source + '\\\+' + registerRegex.source + optionalMultByConstantRegex.source);
 export const regRegOnlyRegex = new RegExp('^(' + registerRegex.source + '\\\+' + registerRegex.source + optionalMultByConstantRegex.source + ')$');
 export const regRegDispRegex = new RegExp('^(' + regRegRegex.source + '\\\+' + displacementRegex.source + ')$');
-export const regConstant = new RegExp('^(' + registerRegex.source + '\\\*' + constants.source + ')$');
+const regConstant = new RegExp(registerRegex.source + '\\\*' + constants.source);
+export const regConstantOnly = new RegExp('^(' + regConstant.source + ')$');
+export const regConstDisp = new RegExp('^(' + regConstant.source + '\\\+' + displacementRegex.source + ')$');

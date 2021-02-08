@@ -1,5 +1,5 @@
 import {AsmFunction, InstructionStructure} from './index';
-import {getTypes, operandType} from '../../functions/getTypes';
+import {convertToTwosComp, getTypes, operandType} from '../../functions/getTypes';
 import {Table} from '32bit-adressing-table-modrm';
 import {HashMap} from '../../helper/hashMap';
 import {SixteenBitRegisters, ThirtyTwoBitRegisters} from '../registers';
@@ -49,7 +49,7 @@ export const ADD: AsmFunction = {
 };
 
 export const formatOp = (opCode: string, op1?: string, op2?: string, op1Type?: operandType[], op2Type?: operandType[]) => {
-
+    const dispIsZero = op2Type?.includes('zero');
     if (opCode.includes('ib')) {
         op2 = makeValueToByte(op2!, 2);
 
@@ -61,30 +61,45 @@ export const formatOp = (opCode: string, op1?: string, op2?: string, op1Type?: o
     if (opCode.includes('id')) {
         op2 = makeValueToByte(op2!, 8);
     }
+
     if (op2Type?.includes('reg*constant')) {
         op2 = '00000000';
+    } else {
+        if (dispIsZero) {
+            if (op2Type?.includes('neg')) {
+                op2 = op2?.split('-')[0] + ']';
+            } else {
+                op2 = op2?.split('+')[0] + ']';
+            }
+        }
     }
     if (hasType(op2Type, 'disp')) {
-        if (hasType(op2Type, '+')) {
-            op2 = removeBrackets(op2!).split('+')[1];
-            if (hasType(op2Type, 'disp32')) {
+        const bracketsRemoved = removeBrackets(op2!);
+        if (op2Type?.includes('neg')) {
+            bracketsRemoved = bracketsRemoved.replace('-', '+');
+        }
+        const separated = bracketsRemoved.split('+');
+        op2 = separated[separated.length - 1]; // we know the displacement will always be last
+
+        if (hasType(op2Type, 'disp32')) {
+            if (op2Type?.includes('mr16')) {
+                op2 = makeValueToByte(op2, 4);
+            } else {
                 op2 = makeValueToByte(op2, 8);
             }
-            if (hasType(op2Type, 'disp16')) {
-                op2 = makeValueToByte(op2, 4);
-            }
-            if (hasType(op2Type, 'disp8')) {
-                op2 = makeValueToByte(op2, 2);
-            }
-            op2 = rotate(op2);
         }
-        if (hasType(op2Type, 'disp32') && !hasType(op2Type, '+')) {
-            op2 = removeBrackets(op2!);
-            op2 = makeValueToByte(op2!, 8);
+        if (hasType(op2Type, 'disp16')) {
+            op2 = makeValueToByte(op2, 4);
         }
+        if (hasType(op2Type, 'disp8')) {
+            op2 = makeValueToByte(op2, 2);
+        }
+        if (op2Type?.includes('neg')) {
+            op2 = convertToTwosComp(op2!);
+        }
+        op2 = op2.toUpperCase();
     }
-
-    if (!hasType(op2Type, 'r')) {
+    if (hasType(op2Type, 'disp') || hasType(op2Type, 'imm')) {
         op2 = rotate(op2!);
     }
     return [op1, op2];
@@ -108,11 +123,15 @@ export const setLengthWhenReg32AndImm16 = (op: string, opCode: string) => {
     return op;
 };
 
-const makeValueToByte = (v: string, byte: 2 | 4 | 8) => {
+export const makeValueToByte = (v: string, byte: 2 | 4 | 8) => {
     if (v.length < byte) {
         for (let i = 0; v.length < byte; i++) {
             v = '0' + v;
         }
+    }
+    if (v.length > byte) {
+        const diff = v.length - byte;
+        v = v.slice(diff);
     }
     return v;
 };
@@ -206,6 +225,9 @@ export const getOpCode = (table: HashMap<InstructionStructure, string>, ins: str
                 if (op === 'r16' && (op2.includes('m8') || op2.includes('m32'))) {
                     opCode = table.get({operation, operand1: op, operand2: 'm16'});
                     return !!opCode;
+                }
+                if (op === 'r8' && (op2.includes('m16') || op2.includes('m32'))) {
+                    opCode = table.get({operation, operand1: op, operand2: 'm8'});
                 }
                 return false;
             });

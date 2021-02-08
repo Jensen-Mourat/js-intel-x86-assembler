@@ -1,10 +1,11 @@
-import {suite, test} from '@testdeck/mocha';
+import{suite, test} from '@testdeck/mocha';
 import * as _chai from 'chai';
 import {ADD} from '../src/constants/AsmFunctions/ADD';
 import {PARAMETERS} from './parameters';
+import {convertHexToBinary, convertToTwosComp} from '../src/functions/getTypes';
+import {rotate} from '../src/functions/rotate';
 
 _chai.should();
-const {expect} = _chai;
 
 @suite
 class addTest {
@@ -144,9 +145,39 @@ class addTest {
     }
 
     @test 'r16 with reg + disp'() {
-        ADD.generateMachineCode('ax', '[si+12]').should.equal('6766034412');
+        //ADD.generateMachineCode('ax', '[si+12]').should.equal('6766034412');
         ADD.generateMachineCode('ax', '[si+1122]').should.equal('676603842211');
-        (() => ADD.generateMachineCode('ax', '[si+112234]')).should.throw;
+        ADD.generateMachineCode('ax', '[si+112234]').should.equal('676603843422');
+    }
+
+    @test 'r16 with r16 + r16'() {
+        ADD.generateMachineCode('ax', '[bx+si]').should.equal('67660300');
+        ADD.generateMachineCode('bx', '[bx+di]').should.equal('67660319');
+        ADD.generateMachineCode('cx', '[bp+si]').should.equal('6766030A');
+        ADD.generateMachineCode('dx', '[si]').should.equal('67660314');
+        ADD.generateMachineCode('dx', '[di]').should.equal('67660315');
+        ADD.generateMachineCode('ax', '[bx]').should.equal('67660307');
+    }
+
+    @test 'r16 with r16 + r16 + disp'() {
+        ADD.generateMachineCode('ax', '[bx+si+12]').should.equal('6766034012');
+        ADD.generateMachineCode('bx', '[bx+di+12]').should.equal('6766035912');
+        ADD.generateMachineCode('cx', '[bp+si+1]').should.equal('6766034A01');
+        ADD.generateMachineCode('dx', '[si+12]').should.equal('6766035412');
+        ADD.generateMachineCode('dx', '[di+12]').should.equal('6766035512');
+        ADD.generateMachineCode('ax', '[bx+12]').should.equal('6766034712');
+        ADD.generateMachineCode('dx', '[di+1]').should.equal('6766035501');
+        ADD.generateMachineCode('ax', '[bx+1]').should.equal('6766034701');
+        //disp16
+        ADD.generateMachineCode('ax', '[bx+si+1234]').should.equal('676603803412');
+        ADD.generateMachineCode('bx', '[bx+di+1234]').should.equal('676603993412');
+        ADD.generateMachineCode('cx', '[bp+si+134]').should.equal('6766038A3401');
+        ADD.generateMachineCode('dx', '[si+1243]').should.equal('676603944312');
+        ADD.generateMachineCode('dx', '[di+1243]').should.equal('676603954312');
+        ADD.generateMachineCode('ax', '[bx+1234]').should.equal('676603873412');
+        ADD.generateMachineCode('ax', '[bx+123]').should.equal('676603872301');
+        ADD.generateMachineCode('ax', '[bx+si+123445]').should.equal('676603804534');
+        ADD.generateMachineCode('ax', '[bx+123445]').should.equal('676603874534');
     }
 
     @test 'r32, second operand r'() {
@@ -216,5 +247,290 @@ class addTest {
         ADD.generateMachineCode('edi', '[ebp*8]').should.equal('033CED00000000');
     }
 
+    @test 'r32 with reg+reg'() {
+        ADD.generateMachineCode('eax', '[eax+eax]').should.equal('030400');
+        ADD.generateMachineCode('eax', '[ecx+ebx]').should.equal('030419');
+        ADD.generateMachineCode('esi', '[eax+edx]').should.equal('033410');
+        ADD.generateMachineCode('eax', '[eax+ebp]').should.equal('030428');
+        ADD.generateMachineCode('edi', '[edx+esi]').should.equal('033C32');
+        ADD.generateMachineCode('ebp', '[eax+edi]').should.equal('032C38');
+        ADD.generateMachineCode('edx', '[eax+ebx]').should.equal('031418');
+        ADD.generateMachineCode('ecx', '[ebx+eax]').should.equal('030C03');
+        ADD.generateMachineCode('ebx', '[eax+eax]').should.equal('031C00');
+        (() => ADD.generateMachineCode('ebx', '[eax+ax]')).should.throw;
+    }
+
+    @test 'r32 with reg+reg*constant'() {
+        ADD.generateMachineCode('eax', '[eax+eax*2]').should.equal('030440');
+        ADD.generateMachineCode('eax', '[ecx+ebx*4]').should.equal('030499');
+        ADD.generateMachineCode('esi', '[eax+edx*8]').should.equal('0334D0');
+        ADD.generateMachineCode('eax', '[eax+ebp*2]').should.equal('030468');
+        ADD.generateMachineCode('edi', '[edx+esi*1]').should.equal('033C32');
+        ADD.generateMachineCode('ebp', '[eax+edi*8]').should.equal('032CF8');
+        ADD.generateMachineCode('edx', '[eax+ebx*2]').should.equal('031458');
+        ADD.generateMachineCode('ecx', '[ebx+eax*4]').should.equal('030C83');
+        ADD.generateMachineCode('ebx', '[eax+eax*1]').should.equal('031C00');
+        (() => ADD.generateMachineCode('ebx', '[eax+eax*3]')).should.throw;
+    }
+
+    @test 'r32 with reg+reg*constant+displacement'() {
+        ADD.generateMachineCode('eax', '[eax+eax*2+1]').should.equal('03444001');
+        ADD.generateMachineCode('eax', '[ecx+ebx*4+1]').should.equal('03449901');
+        ADD.generateMachineCode('esi', '[eax+edx*8+1]').should.equal('0374D001');
+        ADD.generateMachineCode('eax', '[eax+ebp*2+1]').should.equal('03446801');
+        ADD.generateMachineCode('edi', '[edx+esi*1+12]').should.equal('037C3212');
+        ADD.generateMachineCode('ebp', '[eax+edi*8+12]').should.equal('036CF812');
+        ADD.generateMachineCode('edx', '[eax+ebx*2+12]').should.equal('03545812');
+        ADD.generateMachineCode('ecx', '[ebx+eax*4+12]').should.equal('034C8312');
+        ADD.generateMachineCode('ebx', '[eax+eax*1+12]').should.equal('035C0012');
+        ADD.generateMachineCode('eax', '[eax+eax*2+123]').should.equal('03844023010000');
+        ADD.generateMachineCode('eax', '[ecx+ebx*4+123]').should.equal('03849923010000');
+        ADD.generateMachineCode('esi', '[eax+edx*8+123]').should.equal('03B4D023010000');
+        ADD.generateMachineCode('eax', '[eax+ebp*2+123]').should.equal('03846823010000');
+        ADD.generateMachineCode('edi', '[edx+esi*1+1234]').should.equal('03BC3234120000');
+        ADD.generateMachineCode('ebp', '[eax+edi*8+1234]').should.equal('03ACF834120000');
+        ADD.generateMachineCode('edx', '[eax+ebx*2+1234]').should.equal('03945834120000');
+        ADD.generateMachineCode('ecx', '[ebx+eax*4+1234]').should.equal('038C8334120000');
+        ADD.generateMachineCode('ebx', '[eax+eax*1+1234]').should.equal('039C0034120000');
+        ADD.generateMachineCode('eax', '[eax+eax*2+12345]').should.equal('03844045230100');
+        ADD.generateMachineCode('eax', '[ecx+ebx*4+12345]').should.equal('03849945230100');
+        ADD.generateMachineCode('esi', '[eax+edx*8+12345]').should.equal('03B4D045230100');
+        ADD.generateMachineCode('eax', '[eax+ebp*2+12345]').should.equal('03846845230100');
+        ADD.generateMachineCode('edi', '[edx+esi*1+123456]').should.equal('03BC3256341200');
+        ADD.generateMachineCode('ebp', '[eax+edi*8+123456]').should.equal('03ACF856341200');
+        ADD.generateMachineCode('edx', '[eax+ebx*2+123456]').should.equal('03945856341200');
+        ADD.generateMachineCode('ecx', '[ebx+eax*4+123456]').should.equal('038C8356341200');
+        ADD.generateMachineCode('ebx', '[eax+eax*1+123456]').should.equal('039C0056341200');
+        ADD.generateMachineCode('eax', '[eax+eax*2+1234567]').should.equal('03844067452301');
+        ADD.generateMachineCode('eax', '[ecx+ebx*4+1234567]').should.equal('03849967452301');
+        ADD.generateMachineCode('esi', '[eax+edx*8+1234567]').should.equal('03B4D067452301');
+        ADD.generateMachineCode('eax', '[eax+ebp*2+1234567]').should.equal('03846867452301');
+        ADD.generateMachineCode('edi', '[edx+esi*1+12345678]').should.equal('03BC3278563412');
+        ADD.generateMachineCode('ebp', '[eax+edi*8+12345678]').should.equal('03ACF878563412');
+        ADD.generateMachineCode('edx', '[eax+ebx*2+12345678]').should.equal('03945878563412');
+        ADD.generateMachineCode('ecx', '[ebx+eax*4+12345678]').should.equal('038C8378563412');
+        ADD.generateMachineCode('ebx', '[eax+eax*1+12345678]').should.equal('039C0078563412');
+        (() => ADD.generateMachineCode('ebx', '[eax+eax*3+1]')).should.throw;
+        (() => ADD.generateMachineCode('ebx', '[eax+eax*2+11232131231]')).should.throw;
+    }
+
+    @test 'r8 negative displacement' () {
+        ADD.generateMachineCode('al', '[-0]').should.equal('020500000000');
+        ADD.generateMachineCode('al', '[-1]').should.equal('0205FFFFFFFF');
+        ADD.generateMachineCode('al', '[-11]').should.equal('0205EFFFFFFF');
+        ADD.generateMachineCode('al', '[-FF]').should.equal('020501FFFFFF');
+        ADD.generateMachineCode('al', '[-12]').should.equal('0205EEFFFFFF');
+        ADD.generateMachineCode('al', '[-111]').should.equal('0205EFFEFFFF');
+        ADD.generateMachineCode('al', '[-FFF]').should.equal('020501F0FFFF');
+        ADD.generateMachineCode('al', '[-123]').should.equal('0205DDFEFFFF');
+        ADD.generateMachineCode('al', '[-1111]').should.equal('0205EFEEFFFF');
+        ADD.generateMachineCode('al', '[-FFFF]').should.equal('02050100FFFF');
+        ADD.generateMachineCode('al', '[-1234]').should.equal('0205CCEDFFFF');
+        ADD.generateMachineCode('al', '[-11111111]').should.equal('0205EFEEEEEE');
+        ADD.generateMachineCode('al', '[-FFFFFFFF]').should.equal('020501000000');
+        ADD.generateMachineCode('al', '[-12345678]').should.equal('020588A9CBED');
+        ADD.generateMachineCode('al', '[-1234567]').should.equal('020599BADCFE');
+    }
+
+    @test 'r16 negative displacement' () {
+        ADD.generateMachineCode('ax', '[-0]').should.equal('66030500000000');
+        ADD.generateMachineCode('ax', '[-1]').should.equal('660305FFFFFFFF');
+        ADD.generateMachineCode('ax', '[-11]').should.equal('660305EFFFFFFF');
+        ADD.generateMachineCode('ax', '[-FF]').should.equal('66030501FFFFFF');
+        ADD.generateMachineCode('ax', '[-12]').should.equal('660305EEFFFFFF');
+        ADD.generateMachineCode('ax', '[-111]').should.equal('660305EFFEFFFF');
+        ADD.generateMachineCode('ax', '[-FFF]').should.equal('66030501F0FFFF');
+        ADD.generateMachineCode('ax', '[-123]').should.equal('660305DDFEFFFF');
+        ADD.generateMachineCode('ax', '[-1111]').should.equal('660305EFEEFFFF');
+        ADD.generateMachineCode('ax', '[-FFFF]').should.equal('6603050100FFFF');
+        ADD.generateMachineCode('ax', '[-1234]').should.equal('660305CCEDFFFF');
+        ADD.generateMachineCode('ax', '[-11111111]').should.equal('660305EFEEEEEE');
+        ADD.generateMachineCode('ax', '[-FFFFFFFF]').should.equal('66030501000000');
+        ADD.generateMachineCode('ax', '[-12345678]').should.equal('66030588A9CBED');
+        ADD.generateMachineCode('ax', '[-1234567]').should.equal('66030599BADCFE');
+    }
+
+    @test 'r32 negative displacement'() {
+        ADD.generateMachineCode('eax', '[-0]').should.equal('030500000000');
+        ADD.generateMachineCode('eax', '[-1]').should.equal('0305FFFFFFFF');
+        ADD.generateMachineCode('eax', '[-FF]').should.equal('030501FFFFFF');
+        ADD.generateMachineCode('eax', '[-12]').should.equal('0305EEFFFFFF');
+        ADD.generateMachineCode('eax', '[-111]').should.equal('0305EFFEFFFF');
+        ADD.generateMachineCode('eax', '[-FFF]').should.equal('030501F0FFFF');
+        ADD.generateMachineCode('eax', '[-123]').should.equal('0305DDFEFFFF');
+        ADD.generateMachineCode('eax', '[-1111]').should.equal('0305EFEEFFFF');
+        ADD.generateMachineCode('eax', '[-FFFF]').should.equal('03050100FFFF');
+        ADD.generateMachineCode('eax', '[-1234]').should.equal('0305CCEDFFFF');
+        ADD.generateMachineCode('eax', '[-11111111]').should.equal('0305EFEEEEEE');
+        ADD.generateMachineCode('eax', '[-FFFFFFFF]').should.equal('030501000000');
+        ADD.generateMachineCode('eax', '[-12345678]').should.equal('030588A9CBED');
+        ADD.generateMachineCode('eax', '[-1234567]').should.equal('030599BADCFE');
+    }
+
+    @test 'r32 negative reg+displacement'() {
+        ADD.generateMachineCode('eax', '[si-12]').should.equal('670344EE');
+        ADD.generateMachineCode('eax', '[eax-0]').should.equal('0300');
+        ADD.generateMachineCode('eax', '[eax-11]').should.equal('0340EF');
+        ADD.generateMachineCode('eax', '[eax-ff]').should.equal('038001FFFFFF'); //defuse.ca says 038001FFFFFF
+        ADD.generateMachineCode('eax', '[eax-12]').should.equal('0340EE');
+        ADD.generateMachineCode('eax', '[eax-111]').should.equal('0380EFFEFFFF');
+        ADD.generateMachineCode('eax', '[eax-fff]').should.equal('038001F0FFFF');
+        ADD.generateMachineCode('eax', '[eax-123]').should.equal('0380DDFEFFFF');
+        ADD.generateMachineCode('eax', '[eax-1111]').should.equal('0380EFEEFFFF');
+        ADD.generateMachineCode('eax', '[eax-ffff]').should.equal('03800100FFFF');
+        ADD.generateMachineCode('eax', '[eax-1234]').should.equal('0380CCEDFFFF');
+        ADD.generateMachineCode('eax', '[eax-11111111]').should.equal('0380EFEEEEEE');
+        ADD.generateMachineCode('eax', '[eax-ffffffff]').should.equal('038001000000');
+        ADD.generateMachineCode('eax', '[eax-12345678]').should.equal('038088A9CBED');
+        ADD.generateMachineCode('eax', '[eax-1234567]').should.equal('038099BADCFE');
+    }
+
+    @test 'r32 negative reg+reg+displacement'() {
+        ADD.generateMachineCode('eax', '[eax+eax*2-0]').should.equal('030440');
+        ADD.generateMachineCode('eax', '[eax+eax*2-1]').should.equal('034440FF');
+        ADD.generateMachineCode('eax', '[eax+eax*2-ff]').should.equal('03844001FFFFFF'); //defuse.ca says 038001FFFFFF
+        ADD.generateMachineCode('eax', '[eax+eax*2-80]').should.equal('03444080');
+        ADD.generateMachineCode('eax', '[eax+eax*2+80]').should.equal('03844080000000');
+        ADD.generateMachineCode('eax', '[eax+eax*2-81]').should.equal('0384407FFFFFFF');
+        ADD.generateMachineCode('eax', '[eax+eax*2+81]').should.equal('03844081000000');
+        ADD.generateMachineCode('eax', '[eax+eax*2-79]').should.equal('03444087');
+        ADD.generateMachineCode('eax', '[eax+eax*2+79]').should.equal('03444079');
+        ADD.generateMachineCode('eax', '[eax+ebx*2-7f]').should.equal('03445881');
+        ADD.generateMachineCode('eax', '[eax+ecx*2+7f]').should.equal('0344487F');
+        ADD.generateMachineCode('eax', '[eax+edx*2+ef]').should.equal('038450EF000000');
+        ADD.generateMachineCode('edx', '[eax+eax*2-ffff]').should.equal('0394400100FFFF');
+        ADD.generateMachineCode('eax', '[eax+eax*2-1111]').should.equal('038440EFEEFFFF');
+        ADD.generateMachineCode('eax', '[eax+eax*2-11111111]').should.equal('038440EFEEEEEE');
+        ADD.generateMachineCode('eax', '[eax+eax*2-ffffffff]').should.equal('03844001000000');
+    }
+
+    @test 'r32 reg*const+displacement'() {
+        ADD.generateMachineCode('eax', '[eax*2-0]').should.equal('03044500000000');
+        ADD.generateMachineCode('eax', '[eax*2-1]').should.equal('030445FFFFFFFF');
+        ADD.generateMachineCode('eax', '[eax*2-ff]').should.equal('03044501FFFFFF');
+        ADD.generateMachineCode('eax', '[eax*2-80]').should.equal('03044580FFFFFF');
+        ADD.generateMachineCode('eax', '[eax*2+80]').should.equal('03044580000000');
+        ADD.generateMachineCode('eax', '[eax*2-81]').should.equal('0304457FFFFFFF');
+        ADD.generateMachineCode('eax', '[eax*2+81]').should.equal('03044581000000');
+        ADD.generateMachineCode('eax', '[eax*2-79]').should.equal('03044587FFFFFF');
+        ADD.generateMachineCode('eax', '[eax*2+79]').should.equal('03044579000000');
+        ADD.generateMachineCode('eax', '[ebx*2-7f]').should.equal('03045D81FFFFFF');
+        ADD.generateMachineCode('eax', '[ecx*2+7f]').should.equal('03044D7F000000');
+        ADD.generateMachineCode('eax', '[edx*2+ef]').should.equal('030455EF000000');
+        ADD.generateMachineCode('edx', '[eax*2-ffff]').should.equal('0314450100FFFF');
+        ADD.generateMachineCode('eax', '[eax*2-1111]').should.equal('030445EFEEFFFF');
+        ADD.generateMachineCode('eax', '[eax*2-11111111]').should.equal('030445EFEEEEEE');
+        ADD.generateMachineCode('eax', '[eax*2-ffffffff]').should.equal('03044501000000');
+        ADD.generateMachineCode('eax', '[eax*4-0]').should.equal('03048500000000');
+        ADD.generateMachineCode('eax', '[eax*4-1]').should.equal('030485FFFFFFFF');
+        ADD.generateMachineCode('eax', '[eax*8-ff]').should.equal('0304C501FFFFFF');
+        ADD.generateMachineCode('eax', '[eax*8+ff]').should.equal('0304C5FF000000');
+        ADD.generateMachineCode('eax', '[eax*8-80]').should.equal('0304C580FFFFFF');
+        ADD.generateMachineCode('eax', '[eax*4+80]').should.equal('03048580000000');
+        ADD.generateMachineCode('eax', '[eax*4-81]').should.equal('0304857FFFFFFF');
+        ADD.generateMachineCode('eax', '[eax*8+81]').should.equal('0304C581000000');
+        ADD.generateMachineCode('eax', '[eax*8-79]').should.equal('0304C587FFFFFF');
+        ADD.generateMachineCode('eax', '[eax*4+79]').should.equal('03048579000000');
+        ADD.generateMachineCode('eax', '[ebx*8-7f]').should.equal('0304DD81FFFFFF');
+        ADD.generateMachineCode('eax', '[ecx*8+7f]').should.equal('0304CD7F000000');
+        ADD.generateMachineCode('eax', '[edx*4+ef]').should.equal('030495EF000000');
+        ADD.generateMachineCode('edx', '[eax*4-ffff]').should.equal('0314850100FFFF');
+        ADD.generateMachineCode('eax', '[eax*8-1111]').should.equal('0304C5EFEEFFFF');
+        ADD.generateMachineCode('eax', '[eax*8-11111111]').should.equal('0304C5EFEEEEEE');
+        ADD.generateMachineCode('eax', '[eax*4-ffffffff]').should.equal('03048501000000');
+    }
+
 
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
