@@ -1,8 +1,10 @@
 import {operandType} from '../../functions/getTypes';
 
 export interface AsmFunction {
-    generateMachineCode(op1?: string, op2?: string): string;
+    generateMachineCode(op1?: string, op2?: string, ptrType?: ptrType): string;
 }
+
+export type ptrType = 'byte' | 'word' | 'dword'
 
 
 export interface InstructionStructure {

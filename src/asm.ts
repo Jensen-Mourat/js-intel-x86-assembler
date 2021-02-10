@@ -12,6 +12,10 @@ export class _Assembler {
         //Add
         this.OpTable.set('add', ADD);
     }
+
+    private getMachineCode(s:string){
+        const ins = s.split(' ')[0];
+    }
 }
 
 export const Assembler = new _Assembler();

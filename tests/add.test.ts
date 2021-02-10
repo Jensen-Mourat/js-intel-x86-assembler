@@ -1,9 +1,7 @@
-import{suite, test} from '@testdeck/mocha';
+import {suite, test} from '@testdeck/mocha';
 import * as _chai from 'chai';
 import {ADD} from '../src/constants/AsmFunctions/ADD';
 import {PARAMETERS} from './parameters';
-import {convertHexToBinary, convertToTwosComp} from '../src/functions/getTypes';
-import {rotate} from '../src/functions/rotate';
 
 _chai.should();
 
@@ -314,7 +312,7 @@ class addTest {
         (() => ADD.generateMachineCode('ebx', '[eax+eax*2+11232131231]')).should.throw;
     }
 
-    @test 'r8 negative displacement' () {
+    @test 'r8 negative displacement'() {
         ADD.generateMachineCode('al', '[-0]').should.equal('020500000000');
         ADD.generateMachineCode('al', '[-1]').should.equal('0205FFFFFFFF');
         ADD.generateMachineCode('al', '[-11]').should.equal('0205EFFFFFFF');
@@ -332,7 +330,7 @@ class addTest {
         ADD.generateMachineCode('al', '[-1234567]').should.equal('020599BADCFE');
     }
 
-    @test 'r16 negative displacement' () {
+    @test 'r16 negative displacement'() {
         ADD.generateMachineCode('ax', '[-0]').should.equal('66030500000000');
         ADD.generateMachineCode('ax', '[-1]').should.equal('660305FFFFFFFF');
         ADD.generateMachineCode('ax', '[-11]').should.equal('660305EFFFFFFF');
@@ -440,8 +438,508 @@ class addTest {
         ADD.generateMachineCode('eax', '[eax*4-ffffffff]').should.equal('03048501000000');
     }
 
+    @test 'mr32 and bytes'() {
+        (() => ADD.generateMachineCode('[eax]', '0')).should.throw;
+        ADD.generateMachineCode('[eax]', '1').should.equal('810001000000');
+        ADD.generateMachineCode('[eax]', 'FF').should.equal('8100FF000000');
+        ADD.generateMachineCode('[eax]', '80').should.equal('810080000000');
+        ADD.generateMachineCode('[edx]', 'FFFF').should.equal('8102FFFF0000');
+        ADD.generateMachineCode('[eax]', '1111').should.equal('810011110000');
+        ADD.generateMachineCode('[eax]', '1111111').should.equal('810011111101');
+        ADD.generateMachineCode('[eax]', 'FFFFFFFF').should.equal('8100FFFFFFFF');
+    }
 
+    @test 'mr32*constant and bytes'() {
+        ADD.generateMachineCode('[eax*2]', '1').should.equal('8104450000000001000000');
+        ADD.generateMachineCode('[eax*4]', 'FF').should.equal('81048500000000FF000000');
+        ADD.generateMachineCode('[eax*8]', '80').should.equal('8104C50000000080000000');
+        ADD.generateMachineCode('[edx*1]', 'FFFF').should.equal('81041500000000FFFF0000');
+        ADD.generateMachineCode('[ebx*2]', '1111').should.equal('81045D0000000011110000');
+        ADD.generateMachineCode('[ecx*4]', '1111111').should.equal('81048D0000000011111101');
+        ADD.generateMachineCode('[edi*8]', 'FFFFFFFF').should.equal('8104FD00000000FFFFFFFF');
+        (() => ADD.generateMachineCode('[eax*3]', 'FFFFFFFF')).should.throw;
+        (() => ADD.generateMachineCode('[eax*5]', 'FFFFFFFF')).should.throw;
+        (() => ADD.generateMachineCode('[eax*1]', '0')).should.throw;
+    }
+
+    @test 'reg+mr32*constant and bytes'() {
+        ADD.generateMachineCode('[eax+eax*2]', '1').should.equal('8104400000000001000000');
+        ADD.generateMachineCode('[ebx+eax*4]', 'FF').should.equal('81048300000000FF000000');
+        ADD.generateMachineCode('[ecx+eax*8]', '80').should.equal('8104C10000000080000000');
+        ADD.generateMachineCode('[edx+edx*1]', 'FFFF').should.equal('81041200000000FFFF0000');
+        ADD.generateMachineCode('[edi+ebx*2]', '1111').should.equal('81045F0000000011110000');
+        ADD.generateMachineCode('[esi+ecx*4]', '1111111').should.equal('81048E0000000011111101');
+        ADD.generateMachineCode('[eax+edi*8]', 'FFFFFFFF').should.equal('8104F800000000FFFFFFFF');
+        (() => ADD.generateMachineCode('[eax*3]', 'FFFFFFFF')).should.throw;
+        (() => ADD.generateMachineCode('[eax*5]', 'FFFFFFFF')).should.throw;
+        (() => ADD.generateMachineCode('[eax*1]', '0')).should.throw;
+    }
+
+    @test 'reg+mr32*constant + displacement and bytes'() {
+        ADD.generateMachineCode('[eax+eax*2+1]', '1').should.equal('8144400101000000');
+        ADD.generateMachineCode('[ebx+eax*4+FF]', 'FF').should.equal('818483FF000000FF000000');
+        ADD.generateMachineCode('[ecx+eax*8+80]', '80').should.equal('8184C18000000080000000');
+        ADD.generateMachineCode('[edx+edx*1+FFFF]', 'FFFF').should.equal('818412FFFF0000FFFF0000');
+        ADD.generateMachineCode('[edi+ebx*2+1111]', '1111').should.equal('81845F1111000011110000');
+        ADD.generateMachineCode('[esi+ecx*4+1111111]', '1111111').should.equal('81848E1111110111111101');
+        ADD.generateMachineCode('[eax+edi*8+FFFFFFFF]', 'FFFFFFFF').should.equal('8184F8FFFFFFFFFFFFFFFF');
+        (() => ADD.generateMachineCode('[eax*3+FFFFFFFF]', 'FFFFFFFF')).should.throw;
+        (() => ADD.generateMachineCode('[eax*5+FFFFFFFF]', 'FFFFFFFF')).should.throw;
+        (() => ADD.generateMachineCode('[eax*1]', '0')).should.throw;
+    }
+
+    @test 'mr32*constant and bytes, word ptr'() {
+        ADD.generateMachineCode('[eax*2]', '1', 'word').should.equal('66810445000000000100');
+        ADD.generateMachineCode('[eax*4]', 'FF', 'word').should.equal('6681048500000000FF00');
+        ADD.generateMachineCode('[eax*8]', '80', 'word').should.equal('668104C5000000008000');
+        ADD.generateMachineCode('[edx*1]', 'FFFF', 'word').should.equal('6681041500000000FFFF');
+        ADD.generateMachineCode('[ebx*2]', '1111', 'word').should.equal('6681045D000000001111');
+        ADD.generateMachineCode('[ecx*4]', '1111111', 'word').should.equal('6681048D000000001111');
+        ADD.generateMachineCode('[edi*8]', 'FFFFFFFF', 'word').should.equal('668104FD00000000FFFF');
+        (() => ADD.generateMachineCode('[eax*3]', 'FFFFFFFF')).should.throw;
+        (() => ADD.generateMachineCode('[eax*5]', 'FFFFFFFF')).should.throw;
+        (() => ADD.generateMachineCode('[eax*1]', '0')).should.throw;
+    }
+
+    @test 'mr32 and bytes, word ptr'() {
+        ADD.generateMachineCode('[eax]', '1', 'word').should.equal('6681000100');
+        ADD.generateMachineCode('[eax]', 'FF', 'word').should.equal('668100FF00');
+        ADD.generateMachineCode('[eax]', '80', 'word').should.equal('6681008000');
+        ADD.generateMachineCode('[edx]', 'FFFF', 'word').should.equal('668102FFFF');
+        ADD.generateMachineCode('[eax]', '1111', 'word').should.equal('6681001111');
+        ADD.generateMachineCode('[eax]', '1111111', 'word').should.equal('6681001111');
+        ADD.generateMachineCode('[eax]', 'FFFFFFFF', 'word').should.equal('668100FFFF');
+        (() => ADD.generateMachineCode('[eax]', '0', 'word')).should.throw;
+    }
+
+
+    @test 'mr32 and bytes, byte ptr'() {
+        ADD.generateMachineCode('[eax]', '1', 'byte').should.equal('800001');
+        ADD.generateMachineCode('[eax]', 'FF', 'byte').should.equal('8000FF');
+        ADD.generateMachineCode('[eax]', '80', 'byte').should.equal('800080');
+        ADD.generateMachineCode('[edx]', 'FFFF', 'byte').should.equal('8002FF');
+        ADD.generateMachineCode('[eax]', '1111', 'byte').should.equal('800011');
+        ADD.generateMachineCode('[eax]', '1111111', 'byte').should.equal('800011');
+        ADD.generateMachineCode('[eax]', 'FFFFFFFF', 'byte').should.equal('8000FF');
+        (() => ADD.generateMachineCode('[eax]', '0', 'byte')).should.throw;
+    }
+
+    @test 'mr16 and bytes'() {
+        ADD.generateMachineCode('[di]', '1').should.equal('67810501000000');
+        ADD.generateMachineCode('[si]', '1').should.equal('67810401000000');
+        ADD.generateMachineCode('[bx]', '1').should.equal('67810701000000');
+        ADD.generateMachineCode('[di]', '1').should.equal('67810501000000');
+        ADD.generateMachineCode('[si]', '1').should.equal('67810401000000');
+        ADD.generateMachineCode('[bx]', '1').should.equal('67810701000000');
+        ADD.generateMachineCode('[di]', 'FF').should.equal('678105FF000000');
+        ADD.generateMachineCode('[si]', 'FFFF').should.equal('678104FFFF0000');
+        ADD.generateMachineCode('[bx]', '1FFF').should.equal('678107FF1F0000');
+        ADD.generateMachineCode('[di]', '1FFFFFFF').should.equal('678105FFFFFF1F');
+    }
+
+    @test 'mr16 and bytes, byte ptr'() {
+        ADD.generateMachineCode('[di]', '1', 'byte').should.equal('67800501');
+        ADD.generateMachineCode('[di]', '1111', 'byte').should.equal('67800511');
+        ADD.generateMachineCode('[si]', '1', 'byte').should.equal('67800401');
+        ADD.generateMachineCode('[bx]', '1', 'byte').should.equal('67800701');
+        ADD.generateMachineCode('[di]', '1', 'byte').should.equal('67800501');
+        ADD.generateMachineCode('[si]', '1', 'byte').should.equal('67800401');
+        ADD.generateMachineCode('[bx]', '1', 'byte').should.equal('67800701');
+        ADD.generateMachineCode('[di]', 'FF', 'byte').should.equal('678005FF');
+        ADD.generateMachineCode('[si]', 'FFFF', 'byte').should.equal('678004FF');
+        ADD.generateMachineCode('[bx]', '1FFF', 'byte').should.equal('678007FF');
+        ADD.generateMachineCode('[di]', '1FFFFFFF', 'byte').should.equal('678005FF');
+    }
+
+    @test 'mr16 and bytes, word ptr'() {
+        ADD.generateMachineCode('[di]', '1', 'word').should.equal('676681050100');
+        ADD.generateMachineCode('[di]', '1111', 'word').should.equal('676681051111');
+        ADD.generateMachineCode('[si]', '1', 'word').should.equal('676681040100');
+        ADD.generateMachineCode('[bx]', '1', 'word').should.equal('676681070100');
+        ADD.generateMachineCode('[di]', '1', 'word').should.equal('676681050100');
+        ADD.generateMachineCode('[si]', '1', 'word').should.equal('676681040100');
+        ADD.generateMachineCode('[bx]', '1', 'word').should.equal('676681070100');
+        ADD.generateMachineCode('[di]', 'FF', 'word').should.equal('67668105FF00');
+        ADD.generateMachineCode('[si]', 'FFFF', 'word').should.equal('67668104FFFF');
+        ADD.generateMachineCode('[bx]', '1FFF', 'word').should.equal('67668107FF1F');
+        ADD.generateMachineCode('[di]', '1FFFFFFF', 'word').should.equal('67668105FFFF');
+    }
+
+    @test 'mr16 and bytes, dword'() {
+        ADD.generateMachineCode('[di]', '1', 'dword').should.equal('67810501000000');
+        ADD.generateMachineCode('[si]', '1', 'dword').should.equal('67810401000000');
+        ADD.generateMachineCode('[bx]', '1', 'dword').should.equal('67810701000000');
+        ADD.generateMachineCode('[di]', '1', 'dword').should.equal('67810501000000');
+        ADD.generateMachineCode('[si]', '1', 'dword').should.equal('67810401000000');
+        ADD.generateMachineCode('[bx]', '1', 'dword').should.equal('67810701000000');
+        ADD.generateMachineCode('[di]', 'FF', 'dword').should.equal('678105FF000000');
+        ADD.generateMachineCode('[si]', 'FFFF', 'dword').should.equal('678104FFFF0000');
+        ADD.generateMachineCode('[bx]', '1FFF', 'dword').should.equal('678107FF1F0000');
+        ADD.generateMachineCode('[di]', '1FFFFFFF', 'dword').should.equal('678105FFFFFF1F');
+    }
+
+    @test 'disp and bytes'() {
+        ADD.generateMachineCode('[1]', '1').should.equal('81050100000001000000');
+        ADD.generateMachineCode('[11]', '1111').should.equal('81051100000011110000');
+        ADD.generateMachineCode('[1]', '11111111').should.equal('81050100000011111111');
+        ADD.generateMachineCode('[11]', 'F').should.equal('8105110000000F000000');
+        ADD.generateMachineCode('[1]', 'FFFF').should.equal('810501000000FFFF0000');
+        ADD.generateMachineCode('[1]', 'FFFFFFFF').should.equal('810501000000FFFFFFFF');
+        ADD.generateMachineCode('[1111]', '1').should.equal('81051111000001000000');
+        ADD.generateMachineCode('[1111]', '1111').should.equal('81051111000011110000');
+        ADD.generateMachineCode('[1111]', '11111111').should.equal('81051111000011111111');
+        ADD.generateMachineCode('[1111]', 'F').should.equal('8105111100000F000000');
+        ADD.generateMachineCode('[1111]', 'FFFF').should.equal('810511110000FFFF0000');
+        ADD.generateMachineCode('[11111111]', 'FFFFFFFF').should.equal('810511111111FFFFFFFF');
+        ADD.generateMachineCode('[11111111]', '1').should.equal('81051111111101000000');
+        ADD.generateMachineCode('[11111111]', '1111').should.equal('81051111111111110000');
+        ADD.generateMachineCode('[11111111]', '11111111').should.equal('81051111111111111111');
+        ADD.generateMachineCode('[FF]', '11111111').should.equal('8105FF00000011111111');
+        ADD.generateMachineCode('[FFFF]', '11111111').should.equal('8105FFFF000011111111');
+        ADD.generateMachineCode('[FFFFFFF]', '11111111').should.equal('8105FFFFFF0F11111111');
+        ADD.generateMachineCode('[11111111]', 'F').should.equal('8105111111110F000000');
+        ADD.generateMachineCode('[11111111]', 'FFFF').should.equal('810511111111FFFF0000');
+        ADD.generateMachineCode('[11111111]', 'FFFFFFFF').should.equal('810511111111FFFFFFFF');
+    }
+
+    @test 'disp and bytes, byte ptr'() {
+        ADD.generateMachineCode('[1]', '1', 'byte').should.equal('80050100000001');
+        ADD.generateMachineCode('[11]', '1111', 'byte').should.equal('80051100000011');
+        ADD.generateMachineCode('[1]', '11111111', 'byte').should.equal('80050100000011');
+        ADD.generateMachineCode('[11]', 'F', 'byte').should.equal('8005110000000F');
+        ADD.generateMachineCode('[1]', 'FFFF', 'byte').should.equal('800501000000FF');
+        ADD.generateMachineCode('[1]', 'FFFFFFFF', 'byte').should.equal('800501000000FF');
+        ADD.generateMachineCode('[1111]', '1', 'byte').should.equal('80051111000001');
+        ADD.generateMachineCode('[1111]', '1111', 'byte').should.equal('80051111000011');
+        ADD.generateMachineCode('[1111]', '11111111', 'byte').should.equal('80051111000011');
+        ADD.generateMachineCode('[1111]', 'F', 'byte').should.equal('8005111100000F');
+        ADD.generateMachineCode('[1111]', 'FFFF', 'byte').should.equal('800511110000FF');
+        ADD.generateMachineCode('[11111111]', 'FFFFFFFF', 'byte').should.equal('800511111111FF');
+        ADD.generateMachineCode('[11111111]', '1', 'byte').should.equal('80051111111101');
+        ADD.generateMachineCode('[11111111]', '1111', 'byte').should.equal('80051111111111');
+        ADD.generateMachineCode('[11111111]', '11111111', 'byte').should.equal('80051111111111');
+        ADD.generateMachineCode('[FF]', '11111111', 'byte').should.equal('8005FF00000011');
+        ADD.generateMachineCode('[FFFF]', '11111111', 'byte').should.equal('8005FFFF000011');
+        ADD.generateMachineCode('[FFFFFFF]', '11111111', 'byte').should.equal('8005FFFFFF0F11');
+        ADD.generateMachineCode('[11111111]', 'F', 'byte').should.equal('8005111111110F');
+        ADD.generateMachineCode('[11111111]', 'FFFF', 'byte').should.equal('800511111111FF');
+        ADD.generateMachineCode('[11111111]', 'FFFFFFFF', 'byte').should.equal('800511111111FF');
+    }
+
+    @test 'disp and bytes, word ptr'() {
+        ADD.generateMachineCode('[1]', '1', 'word').should.equal('668105010000000100');
+        ADD.generateMachineCode('[11]', '1111', 'word').should.equal('668105110000001111');
+        ADD.generateMachineCode('[1]', '11111111', 'word').should.equal('668105010000001111');
+        ADD.generateMachineCode('[11]', 'F', 'word').should.equal('668105110000000F00');
+        ADD.generateMachineCode('[1]', 'FFFF', 'word').should.equal('66810501000000FFFF');
+        ADD.generateMachineCode('[1]', 'FFFFFFFF', 'word').should.equal('66810501000000FFFF');
+        ADD.generateMachineCode('[1111]', '1', 'word').should.equal('668105111100000100');
+        ADD.generateMachineCode('[1111]', '1111', 'word').should.equal('668105111100001111');
+        ADD.generateMachineCode('[1111]', '11111111', 'word').should.equal('668105111100001111');
+        ADD.generateMachineCode('[1111]', 'F', 'word').should.equal('668105111100000F00');
+        ADD.generateMachineCode('[1111]', 'FFFF', 'word').should.equal('66810511110000FFFF');
+        ADD.generateMachineCode('[11111111]', 'FFFFFFFF', 'word').should.equal('66810511111111FFFF');
+        ADD.generateMachineCode('[11111111]', '1', 'word').should.equal('668105111111110100');
+        ADD.generateMachineCode('[11111111]', '1111', 'word').should.equal('668105111111111111');
+        ADD.generateMachineCode('[11111111]', '11111111', 'word').should.equal('668105111111111111');
+        ADD.generateMachineCode('[FF]', '11111111', 'word').should.equal('668105FF0000001111');
+        ADD.generateMachineCode('[FFFF]', '11111111', 'word').should.equal('668105FFFF00001111');
+        ADD.generateMachineCode('[FFFFFFF]', '11111111', 'word').should.equal('668105FFFFFF0F1111');
+        ADD.generateMachineCode('[11111111]', 'F', 'word').should.equal('668105111111110F00');
+        ADD.generateMachineCode('[11111111]', 'FFFF', 'word').should.equal('66810511111111FFFF');
+        ADD.generateMachineCode('[11111111]', 'FFFFFFFF', 'word').should.equal('66810511111111FFFF');
+    }
+
+    @test 'disp and bytes, dworf ptr'() {
+        ADD.generateMachineCode('[1]', '1', 'dword').should.equal('81050100000001000000');
+        ADD.generateMachineCode('[11]', '1111', 'dword').should.equal('81051100000011110000');
+        ADD.generateMachineCode('[1]', '11111111', 'dword').should.equal('81050100000011111111');
+        ADD.generateMachineCode('[11]', 'F', 'dword').should.equal('8105110000000F000000');
+        ADD.generateMachineCode('[1]', 'FFFF', 'dword').should.equal('810501000000FFFF0000');
+        ADD.generateMachineCode('[1]', 'FFFFFFFF', 'dword').should.equal('810501000000FFFFFFFF');
+        ADD.generateMachineCode('[1111]', '1', 'dword').should.equal('81051111000001000000');
+        ADD.generateMachineCode('[1111]', '1111', 'dword').should.equal('81051111000011110000');
+        ADD.generateMachineCode('[1111]', '11111111', 'dword').should.equal('81051111000011111111');
+        ADD.generateMachineCode('[1111]', 'F', 'dword').should.equal('8105111100000F000000');
+        ADD.generateMachineCode('[1111]', 'FFFF', 'dword').should.equal('810511110000FFFF0000');
+        ADD.generateMachineCode('[11111111]', 'FFFFFFFF', 'dword').should.equal('810511111111FFFFFFFF');
+        ADD.generateMachineCode('[11111111]', '1', 'dword').should.equal('81051111111101000000');
+        ADD.generateMachineCode('[11111111]', '1111', 'dword').should.equal('81051111111111110000');
+        ADD.generateMachineCode('[11111111]', '11111111', 'dword').should.equal('81051111111111111111');
+        ADD.generateMachineCode('[FF]', '11111111', 'dword').should.equal('8105FF00000011111111');
+        ADD.generateMachineCode('[FFFF]', '11111111', 'dword').should.equal('8105FFFF000011111111');
+        ADD.generateMachineCode('[FFFFFFF]', '11111111', 'dword').should.equal('8105FFFFFF0F11111111');
+        ADD.generateMachineCode('[11111111]', 'F', 'dword').should.equal('8105111111110F000000');
+        ADD.generateMachineCode('[11111111]', 'FFFF', 'dword').should.equal('810511111111FFFF0000');
+        ADD.generateMachineCode('[11111111]', 'FFFFFFFF', 'dword').should.equal('810511111111FFFFFFFF');
+    }
+
+    @test '32bit reg+disp and bytes'() {
+        ADD.generateMachineCode('[eax+1]', '1').should.equal('81400101000000');
+        ADD.generateMachineCode('[ebx+11]', '1111').should.equal('81431111110000');
+        ADD.generateMachineCode('[eax+1]', '11111111').should.equal('81400111111111');
+        ADD.generateMachineCode('[ecx+11]', 'F').should.equal('8141110F000000');
+        ADD.generateMachineCode('[eax+1]', 'FFFF').should.equal('814001FFFF0000');
+        ADD.generateMachineCode('[eax+1]', 'FFFFFFFF').should.equal('814001FFFFFFFF');
+        ADD.generateMachineCode('[eax+1111]', '1').should.equal('81801111000001000000');
+        ADD.generateMachineCode('[eax+1111]', '1111').should.equal('81801111000011110000');
+        ADD.generateMachineCode('[eax+1111]', '11111111').should.equal('81801111000011111111');
+        ADD.generateMachineCode('[eax+1111]', 'F').should.equal('8180111100000F000000');
+        ADD.generateMachineCode('[eax+1111]', 'FFFF').should.equal('818011110000FFFF0000');
+        ADD.generateMachineCode('[eax+11111111]', 'FFFFFFFF').should.equal('818011111111FFFFFFFF');
+        ADD.generateMachineCode('[eax+11111111]', '1').should.equal('81801111111101000000');
+        ADD.generateMachineCode('[eax+11111111]', '1111').should.equal('81801111111111110000');
+        ADD.generateMachineCode('[eax+11111111]', '11111111').should.equal('81801111111111111111');
+        ADD.generateMachineCode('[eax+FF]', '11111111').should.equal('8180FF00000011111111');
+        ADD.generateMachineCode('[eax+FFFF]', '11111111').should.equal('8180FFFF000011111111');
+        ADD.generateMachineCode('[eax+FFFFFFF]', '11111111').should.equal('8180FFFFFF0F11111111');
+        ADD.generateMachineCode('[eax+11111111]', 'F').should.equal('8180111111110F000000');
+        ADD.generateMachineCode('[eax+11111111]', 'FFFF').should.equal('818011111111FFFF0000');
+        ADD.generateMachineCode('[eax+11111111]', 'FFFFFFFF').should.equal('818011111111FFFFFFFF');
+    }
+
+    @test '32bit reg+disp and bytes, word ptr'() {
+        ADD.generateMachineCode('[eax+1]', '1', 'word').should.equal('668140010100');
+        ADD.generateMachineCode('[ebx+11]', '1111', 'word').should.equal('668143111111');
+        ADD.generateMachineCode('[eax+1]', '11111111', 'word').should.equal('668140011111');
+        ADD.generateMachineCode('[ecx+11]', 'F', 'word').should.equal('668141110F00');
+        ADD.generateMachineCode('[eax+1]', 'FFFF', 'word').should.equal('66814001FFFF');
+        ADD.generateMachineCode('[eax+1]', 'FFFFFFFF', 'word').should.equal('66814001FFFF');
+        ADD.generateMachineCode('[eax+1111]', '1', 'word').should.equal('668180111100000100');
+        ADD.generateMachineCode('[eax+1111]', '1111', 'word').should.equal('668180111100001111');
+        ADD.generateMachineCode('[eax+1111]', '11111111', 'word').should.equal('668180111100001111');
+        ADD.generateMachineCode('[eax+1111]', 'F', 'word').should.equal('668180111100000F00');
+        ADD.generateMachineCode('[eax+1111]', 'FFFF', 'word').should.equal('66818011110000FFFF');
+        ADD.generateMachineCode('[eax+11111111]', 'FFFFFFFF', 'word').should.equal('66818011111111FFFF');
+        ADD.generateMachineCode('[eax+11111111]', '1', 'word').should.equal('668180111111110100');
+        ADD.generateMachineCode('[eax+11111111]', '1111', 'word').should.equal('668180111111111111');
+        ADD.generateMachineCode('[eax+11111111]', '11111111', 'word').should.equal('668180111111111111');
+        ADD.generateMachineCode('[eax+FF]', '11111111', 'word').should.equal('668180FF0000001111');
+        ADD.generateMachineCode('[eax+FFFF]', '11111111', 'word').should.equal('668180FFFF00001111');
+        ADD.generateMachineCode('[eax+FFFFFFF]', '11111111', 'word').should.equal('668180FFFFFF0F1111');
+        ADD.generateMachineCode('[eax+11111111]', 'F', 'word').should.equal('668180111111110F00');
+        ADD.generateMachineCode('[eax+11111111]', 'FFFF', 'word').should.equal('66818011111111FFFF');
+        ADD.generateMachineCode('[eax+11111111]', 'FFFFFFFF', 'word').should.equal('66818011111111FFFF');
+    }
+
+    @test '32bit reg+disp and bytes, byte ptr'() {
+        ADD.generateMachineCode('[eax+1]', '1', 'byte').should.equal('80400101');
+        ADD.generateMachineCode('[ebx+11]', '1111', 'byte').should.equal('80431111');
+        ADD.generateMachineCode('[eax+1]', '11111111', 'byte').should.equal('80400111');
+        ADD.generateMachineCode('[ecx+11]', 'F', 'byte').should.equal('8041110F');
+        ADD.generateMachineCode('[eax+1]', 'FFFF', 'byte').should.equal('804001FF');
+        ADD.generateMachineCode('[eax+1]', 'FFFFFFFF', 'byte').should.equal('804001FF');
+        ADD.generateMachineCode('[eax+1111]', '1', 'byte').should.equal('80801111000001');
+        ADD.generateMachineCode('[eax+1111]', '1111', 'byte').should.equal('80801111000011');
+        ADD.generateMachineCode('[eax+1111]', '11111111', 'byte').should.equal('80801111000011');
+        ADD.generateMachineCode('[eax+1111]', 'F', 'byte').should.equal('8080111100000F');
+        ADD.generateMachineCode('[eax+1111]', 'FFFF', 'byte').should.equal('808011110000FF');
+        ADD.generateMachineCode('[eax+11111111]', 'FFFFFFFF', 'byte').should.equal('808011111111FF');
+        ADD.generateMachineCode('[eax+11111111]', '1', 'byte').should.equal('80801111111101');
+        ADD.generateMachineCode('[eax+11111111]', '1111', 'byte').should.equal('80801111111111');
+        ADD.generateMachineCode('[eax+11111111]', '11111111', 'byte').should.equal('80801111111111');
+        ADD.generateMachineCode('[eax+FF]', '11111111', 'byte').should.equal('8080FF00000011');
+        ADD.generateMachineCode('[eax+FFFF]', '11111111', 'byte').should.equal('8080FFFF000011');
+        ADD.generateMachineCode('[eax+FFFFFFF]', '11111111', 'byte').should.equal('8080FFFFFF0F11');
+        ADD.generateMachineCode('[eax+11111111]', 'F', 'byte').should.equal('8080111111110F');
+        ADD.generateMachineCode('[eax+11111111]', 'FFFF', 'byte').should.equal('808011111111FF');
+        ADD.generateMachineCode('[eax+11111111]', 'FFFFFFFF', 'byte').should.equal('808011111111FF');
+    }
+
+    @test '32bit reg+disp and bytes, dword'() {
+        ADD.generateMachineCode('[eax+1]', '1', 'dword').should.equal('81400101000000');
+        ADD.generateMachineCode('[ebx+11]', '1111', 'dword').should.equal('81431111110000');
+        ADD.generateMachineCode('[eax+1]', '11111111', 'dword').should.equal('81400111111111');
+        ADD.generateMachineCode('[ecx+11]', 'F', 'dword').should.equal('8141110F000000');
+        ADD.generateMachineCode('[eax+1]', 'FFFF', 'dword').should.equal('814001FFFF0000');
+        ADD.generateMachineCode('[eax+1]', 'FFFFFFFF', 'dword').should.equal('814001FFFFFFFF');
+        ADD.generateMachineCode('[eax+1111]', '1', 'dword').should.equal('81801111000001000000');
+        ADD.generateMachineCode('[eax+1111]', '1111', 'dword').should.equal('81801111000011110000');
+        ADD.generateMachineCode('[eax+1111]', '11111111', 'dword').should.equal('81801111000011111111');
+        ADD.generateMachineCode('[eax+1111]', 'F', 'dword').should.equal('8180111100000F000000');
+        ADD.generateMachineCode('[eax+1111]', 'FFFF', 'dword').should.equal('818011110000FFFF0000');
+        ADD.generateMachineCode('[eax+11111111]', 'FFFFFFFF', 'dword').should.equal('818011111111FFFFFFFF');
+        ADD.generateMachineCode('[eax+11111111]', '1', 'dword').should.equal('81801111111101000000');
+        ADD.generateMachineCode('[eax+11111111]', '1111', 'dword').should.equal('81801111111111110000');
+        ADD.generateMachineCode('[eax+11111111]', '11111111', 'dword').should.equal('81801111111111111111');
+        ADD.generateMachineCode('[eax+FF]', '11111111', 'dword').should.equal('8180FF00000011111111');
+        ADD.generateMachineCode('[eax+FFFF]', '11111111', 'dword').should.equal('8180FFFF000011111111');
+        ADD.generateMachineCode('[eax+FFFFFFF]', '11111111', 'dword').should.equal('8180FFFFFF0F11111111');
+        ADD.generateMachineCode('[eax+11111111]', 'F', 'dword').should.equal('8180111111110F000000');
+        ADD.generateMachineCode('[eax+11111111]', 'FFFF', 'dword').should.equal('818011111111FFFF0000');
+        ADD.generateMachineCode('[eax+11111111]', 'FFFFFFFF', 'dword').should.equal('818011111111FFFFFFFF');
+    }
+
+    @test '32bit reg-disp and bytes, dword'() {
+        ADD.generateMachineCode('[eax-1]', '1', 'dword').should.equal('8140FF01000000');
+        ADD.generateMachineCode('[ebx-11]', '1111', 'dword').should.equal('8143EF11110000');
+        ADD.generateMachineCode('[eax-1]', '11111111', 'dword').should.equal('8140FF11111111');
+        ADD.generateMachineCode('[ecx-11]', 'F', 'dword').should.equal('8141EF0F000000');
+        ADD.generateMachineCode('[eax-1]', 'FFFF', 'dword').should.equal('8140FFFFFF0000');
+        ADD.generateMachineCode('[eax-1]', 'FFFFFFFF', 'dword').should.equal('8140FFFFFFFFFF');
+        ADD.generateMachineCode('[eax-1111]', '1', 'dword').should.equal('8180EFEEFFFF01000000');
+        ADD.generateMachineCode('[eax-1111]', '1111', 'dword').should.equal('8180EFEEFFFF11110000');
+        ADD.generateMachineCode('[eax-1111]', '11111111', 'dword').should.equal('8180EFEEFFFF11111111');
+        ADD.generateMachineCode('[eax-1111]', 'F', 'dword').should.equal('8180EFEEFFFF0F000000');
+        ADD.generateMachineCode('[eax-1111]', 'FFFF', 'dword').should.equal('8180EFEEFFFFFFFF0000');
+        ADD.generateMachineCode('[eax-11111111]', 'FFFFFFFF', 'dword').should.equal('8180EFEEEEEEFFFFFFFF');
+        ADD.generateMachineCode('[eax-11111111]', '1', 'dword').should.equal('8180EFEEEEEE01000000');
+        ADD.generateMachineCode('[eax-11111111]', '1111', 'dword').should.equal('8180EFEEEEEE11110000');
+        ADD.generateMachineCode('[eax-11111111]', '11111111', 'dword').should.equal('8180EFEEEEEE11111111');
+        ADD.generateMachineCode('[eax-FF]', '11111111', 'dword').should.equal('818001FFFFFF11111111');
+        ADD.generateMachineCode('[eax-FFFF]', '11111111', 'dword').should.equal('81800100FFFF11111111');
+        ADD.generateMachineCode('[eax-FFFFFFF]', '11111111', 'dword').should.equal('8180010000F011111111');
+        ADD.generateMachineCode('[eax-11111111]', 'F', 'dword').should.equal('8180EFEEEEEE0F000000');
+        ADD.generateMachineCode('[eax-11111111]', 'FFFF', 'dword').should.equal('8180EFEEEEEEFFFF0000');
+        ADD.generateMachineCode('[eax-11111111]', 'FFFFFFFF', 'dword').should.equal('8180EFEEEEEEFFFFFFFF');
+    }
+
+    @test '16bit reg+disp and bytes, dword'() {
+        ADD.generateMachineCode('[si+1]', '1', 'dword').should.equal('6781440101000000');
+        ADD.generateMachineCode('[si+11]', '1111', 'dword').should.equal('6781441111110000');
+        ADD.generateMachineCode('[bx+1]', '11111111', 'dword').should.equal('6781470111111111');
+        ADD.generateMachineCode('[di+11]', 'F', 'dword').should.equal('678145110F000000');
+        ADD.generateMachineCode('[bx+si+1]', 'FFFF', 'dword').should.equal('67814001FFFF0000');
+        ADD.generateMachineCode('[bx+di+1]', 'FFFFFFFF', 'dword').should.equal('67814101FFFFFFFF');
+        ADD.generateMachineCode('[bp+di+1111]', '1', 'dword').should.equal('678183111101000000');
+        ADD.generateMachineCode('[bp+si+1111]', '1111', 'dword').should.equal('678182111111110000');
+        ADD.generateMachineCode('[si+1111]', '11111111', 'dword').should.equal('678184111111111111');
+        ADD.generateMachineCode('[bp+di+1111]', 'F', 'dword').should.equal('67818311110F000000');
+        ADD.generateMachineCode('[bp+si+1111]', 'FFFF', 'dword').should.equal('6781821111FFFF0000');
+        ADD.generateMachineCode('[di+FF]', '11111111', 'dword').should.equal('678185FF0011111111');
+        ADD.generateMachineCode('[bx+si+FFFF]', '11111111', 'dword').should.equal('678180FFFF11111111');
+    }
+
+    @test '16bit reg-disp and bytes, dword'() {
+        ADD.generateMachineCode('[si-1]', '1', 'dword').should.equal('678144FF01000000');
+        ADD.generateMachineCode('[si-11]', '1111', 'dword').should.equal('678144EF11110000');
+        ADD.generateMachineCode('[bx-1]', '11111111', 'dword').should.equal('678147FF11111111');
+        ADD.generateMachineCode('[di-11]', 'F', 'dword').should.equal('678145EF0F000000');
+        ADD.generateMachineCode('[bx+si-1]', 'FFFF', 'dword').should.equal('678140FFFFFF0000');
+        ADD.generateMachineCode('[bx+di-1]', 'FFFFFFFF', 'dword').should.equal('678141FFFFFFFFFF');
+        ADD.generateMachineCode('[bp+di-1111]', '1', 'dword').should.equal('678183EFEE01000000');
+        ADD.generateMachineCode('[bp+si-1111]', '1111', 'dword').should.equal('678182EFEE11110000');
+        ADD.generateMachineCode('[si-1111]', '11111111', 'dword').should.equal('678184EFEE11111111');
+        ADD.generateMachineCode('[bp+di-1111]', 'F', 'dword').should.equal('678183EFEE0F000000');
+        ADD.generateMachineCode('[bp+si-1111]', 'FFFF', 'dword').should.equal('678182EFEEFFFF0000');
+        ADD.generateMachineCode('[di-FF]', '11111111', 'dword').should.equal('67818501FF11111111');
+        ADD.generateMachineCode('[bx+si-FFFF]', '11111111', 'dword').should.equal('678180010011111111');
+    }
+
+
+    @test '16bit reg+disp and bytes, word'() {
+        ADD.generateMachineCode('[si+1]', '1', 'word').should.equal('67668144010100');
+        ADD.generateMachineCode('[si+11]', '1111', 'word').should.equal('67668144111111');
+        ADD.generateMachineCode('[bx+1]', '11111111', 'word').should.equal('67668147011111');
+        ADD.generateMachineCode('[di+11]', 'F', 'word').should.equal('67668145110F00');
+        ADD.generateMachineCode('[bx+si+1]', 'FFFF', 'word').should.equal('6766814001FFFF');
+        ADD.generateMachineCode('[bx+di+1]', 'FFFFFFFF', 'word').should.equal('6766814101FFFF');
+        ADD.generateMachineCode('[bp+di+1111]', '1', 'word').should.equal('6766818311110100');
+        ADD.generateMachineCode('[bp+si+1111]', '1111', 'word').should.equal('6766818211111111');
+        ADD.generateMachineCode('[si+1111]', '11111111', 'word').should.equal('6766818411111111');
+        ADD.generateMachineCode('[bp+di+1111]', 'F', 'word').should.equal('6766818311110F00');
+        ADD.generateMachineCode('[bp+si+1111]', 'FFFF', 'word').should.equal('676681821111FFFF');
+        ADD.generateMachineCode('[di+FF]', '11111111', 'word').should.equal('67668185FF001111');
+        ADD.generateMachineCode('[bx+si+FFFF]', '11111111', 'word').should.equal('67668180FFFF1111');
+    }
+
+    @test '16bit reg+disp and bytes, byte'() {
+        ADD.generateMachineCode('[si+1]', '1', 'byte').should.equal('6780440101');
+        ADD.generateMachineCode('[si+11]', '1111', 'byte').should.equal('6780441111');
+        ADD.generateMachineCode('[bx+1]', '11111111', 'byte').should.equal('6780470111');
+        ADD.generateMachineCode('[di+11]', 'F', 'byte').should.equal('678045110F');
+        ADD.generateMachineCode('[bx+si+1]', 'FFFF', 'byte').should.equal('67804001FF');
+        ADD.generateMachineCode('[bx+di+1]', 'FFFFFFFF', 'byte').should.equal('67804101FF');
+        ADD.generateMachineCode('[bp+di+1111]', '1', 'byte').should.equal('678083111101');
+        ADD.generateMachineCode('[bp+si+1111]', '1111', 'byte').should.equal('678082111111');
+        ADD.generateMachineCode('[si+1111]', '11111111', 'byte').should.equal('678084111111');
+        ADD.generateMachineCode('[bp+di+1111]', 'F', 'byte').should.equal('67808311110F');
+        ADD.generateMachineCode('[bp+si+1111]', 'FFFF', 'byte').should.equal('6780821111FF');
+        ADD.generateMachineCode('[di+FF]', '11111111', 'byte').should.equal('678085FF0011');
+        ADD.generateMachineCode('[bx+si+FFFF]', '11111111', 'byte').should.equal('678080FFFF11');
+    }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

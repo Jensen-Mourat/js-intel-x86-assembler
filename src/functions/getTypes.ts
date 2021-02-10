@@ -9,6 +9,7 @@ import {
 } from '../constants/regex';
 import {TwosComplementBuffer} from 'twos-complement-buffer';
 import {makeValueToByte} from '../constants/AsmFunctions/ADD';
+import {ptrType} from '../constants/AsmFunctions';
 
 export const getTypes = (op: string): operandType[] => {
     if (EightBitRegisters.has(op)) {
@@ -48,6 +49,7 @@ export const getTypes = (op: string): operandType[] => {
                     return ['zero', ...containsNegativeDisplacement, ...getTypes(`[${reg}]`)] as operandType[];
                 }
                 const dispLength = length(disp);
+                const checkBase = getMemoryType(reg)!;
                 if (dispLength === '8') { // check is 2s complement present for 8 bit disp
                     if (isNegativeDisplacement) {
                         if (hex > parseInt('80', 16)) {
@@ -59,10 +61,9 @@ export const getTypes = (op: string): operandType[] => {
                         }
                     }
                 }
-                const checkBase = getMemoryType(reg)!;
                 let dispString;
                 if (checkBase.includes('mr16')) {
-                    dispString = `[${reg}]+disp${dispLength === '32' ? '16' : is2s8bit ? '32' : dispLength}`;
+                    dispString = `[${reg}]+disp${dispLength === '32' ? '16' : is2s8bit ? '16' : dispLength}`;
                 } else {
                     dispString = `[${reg}]+disp${dispLength === '16' ? '32' : is2s8bit ? '32' : dispLength}`;
                 }
@@ -276,5 +277,6 @@ export type operandType =
     | 'neg'
     | 'zero'
     | displacementTypes
+    | ptrType
 
 
