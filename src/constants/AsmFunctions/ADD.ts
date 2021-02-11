@@ -43,7 +43,7 @@ export const generateCode = (op1?: string, op2?: string, ins?: string, ptrType?:
     }
 
     [operand1Type, operand2Type] = checkPtrTyp(operand1Type, operand2Type, ptrType);
-    let opCode = getOpCode(ADD_TABLE, ins!, operand1Type, operand2Type);
+    let opCode = getOpCode(table!, ins!, operand1Type, operand2Type);
     [op1, op2] = formatOps(opCode, op1, op2, operand1Type, operand2Type);
     opCode = opCode.replace('ib', '').replace('iw', '').replace('id', '').trim();
     opCode = getPrefix(opCode, operand1Type, operand2Type);
@@ -58,7 +58,7 @@ export const generateCode = (op1?: string, op2?: string, ins?: string, ptrType?:
 
 export const ADD: AsmFunction = {
     generateMachineCode: (op1?: string, op2?: string, ptrType?: ptrType) => {
-        return generateCode(op1, op2, 'add', ptrType,[1], ADD_TABLE);
+        return generateCode(op1, op2, 'add', ptrType, [1], ADD_TABLE);
     }
 };
 
@@ -307,6 +307,7 @@ export const getOpCode = (table: HashMap<InstructionStructure, string>, ins: str
                     opCode = table.get({operation, operand1: 'r32', operand2: 'imm32'});
                     return !!opCode;
                 }
+
                 if ((ThirtyTwoBitRegisters.has(op) || op === 'r32') && op2 === 'imm16') {
                     opCode = table.get({operation, operand1: op, operand2: 'imm32'});
                     return !!opCode;
@@ -315,7 +316,19 @@ export const getOpCode = (table: HashMap<InstructionStructure, string>, ins: str
                     opCode = table.get({operation, operand1: op, operand2: 'm32'});
                     return !!opCode;
                 }
-                if (op === 'r16' && (op2.includes('m8') || op2.includes('m32'))) {
+                if (op === 'r16' && op2 === 'imm8') {
+                    opCode = table.get({operation, operand1: op, operand2: 'imm16'});
+                    return !!opCode;
+                }
+                if (op === 'r32' && op2 === 'imm8') {
+                    opCode = table.get({operation, operand1: op, operand2: 'imm32'});
+                    return !!opCode;
+                }
+                if (op === 'r32' && op2 === 'imm16') {
+                    opCode = table.get({operation, operand1: op, operand2: 'imm32'});
+                    return !!opCode;
+                }
+                if (op === 'r16' && (op2 === 'm8' || op2 === 'm32')) {
                     opCode = table.get({operation, operand1: op, operand2: 'm16'});
                     return !!opCode;
                 }
