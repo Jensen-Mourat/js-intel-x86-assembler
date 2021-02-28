@@ -51,7 +51,7 @@ export const generateCode = (op1?: string, op2?: string, ins?: string, ptrType?:
     let modRmByte;
     [opCode, modRmByte] = getRMByte(opCode);
     if (modRmByte) {
-        return convertModRmByte(opCode, modRmByte, {op1: op1, type1: operand1Type, op2, type2: operand2Type});
+        return convertModRmByte(opCode, modRmByte, {op1, type1: operand1Type, op2, type2: operand2Type});
     }
     return opCode + op2;
 };
@@ -95,10 +95,6 @@ export const checkPtrTyp = (op1?: operandType[], op2?: operandType[], ptrType?: 
         }
     }
     return [op1, op2];
-};
-
-export const getDisplacementValue = () => {
-
 };
 
 export const formatSpecificOp = (op: string, opType: operandType[], position: 1 | 2) => {
@@ -282,7 +278,7 @@ export const getOpCode = (table: HashMap<InstructionStructure, string>, ins: str
     if (operand2) {
         operand1?.some(op => {
             return operand2?.some(op2 => {
-                let t = table.get({operation, operand1: op, operand2: op2});
+                const t = table.get({operation, operand1: op, operand2: op2});
                 if (t) {
                     opCode = t;
                     return true;

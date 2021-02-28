@@ -5,6 +5,7 @@
   ],
   "rules": {
     "class-name": false,
-    "comment-format": false
+    "comment-format": false,
+    "no-shadowed-variable": false
   }
 }

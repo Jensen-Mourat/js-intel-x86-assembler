@@ -21,7 +21,7 @@ export class _Assembler {
 
     getMachineCode(instructions: Instruction[]) {
         let code = '';
-        let offset = 0;
+        const offset = 0;
         const labels = new Map<string, number>(); // key = name, val = position
         const unresolvedJumps = new Map<string, { position: number, is1Byte?: boolean }>();
 
