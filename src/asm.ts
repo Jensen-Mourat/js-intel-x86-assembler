@@ -1,8 +1,9 @@
 import {AsmFunction, InstructionStructure, ptrType} from './constants/AsmFunctions';
-import {ADD, makeValueToByte} from './constants/AsmFunctions/ADD';
+import {ADD} from './constants/AsmFunctions/ADD';
 import {MOV} from './constants/AsmFunctions/MOV';
-import {convertToTwosComp} from './functions/getTypes';
 import {rotate} from './functions/rotate';
+import {makeValueToByte} from './functions/makeValueToByte';
+import {convertToTwosComp} from './functions/twosComplement';
 
 export class _Assembler {
     private OpTable = new Map<string, AsmFunction>();
@@ -14,7 +15,6 @@ export class _Assembler {
     }
 
     private generateTable() {
-        //Add
         this.OpTable.set('add', ADD);
         this.OpTable.set('mov', MOV);
     }

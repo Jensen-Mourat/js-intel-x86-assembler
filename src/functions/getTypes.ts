@@ -1,14 +1,14 @@
 import {EightBitRegisters, SixteenBitRegisters, ThirtyTwoBitRegisters} from '../constants/registers';
 import {
     displacementOnlyRegex,
-    firstCharacterAfterStar, regConstantOnly, regConstDisp,
+    firstCharacterAfterStar,
+    regConstantOnly,
+    regConstDisp,
     regDispRegex,
     registerOnlyRegex,
     regRegDispRegex,
     regRegOnlyRegex,
 } from '../constants/regex';
-import {TwosComplementBuffer} from 'twos-complement-buffer';
-import {makeValueToByte} from '../constants/AsmFunctions/ADD';
 import {ptrType} from '../constants/AsmFunctions';
 
 export const getTypes = (op: string): operandType[] => {
@@ -114,22 +114,6 @@ export const getTypes = (op: string): operandType[] => {
         }
     }
     return [`imm${length(op)}` as operandType];
-};
-
-export const convertToTwosComp = (s: string) => {
-    s = makeHexLengthEven(s);
-    const hexL = s.length;
-    const hex = parseInt(s, 16);
-    const maxHex = parseInt('ffffffff'.slice(0, hexL), 16);
-    const twosC = (maxHex - hex + 1).toString(16).toUpperCase();
-    return makeValueToByte(twosC, hexL as 2 | 4 | 8);
-};
-
-const makeHexLengthEven = (s: string) => {
-    if (s.length % 2 !== 0) {
-        return 0 + s;
-    }
-    return s;
 };
 
 export const matchRegex = (s: string): displacementTypes => {

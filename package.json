@@ -5,7 +5,7 @@
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
   "scripts": {
-    "test": "nyc ./node_modules/.bin/_mocha 'tests/**/*.test.ts'",
+    "test": "node node_modules/mocha/bin/mocha tests/**.test.ts --require register --ui bdd --reporter spec",
     "build": "tsc",
     "format": "prettier --write \"src/**/*.ts\"",
     "lint": "tslint -p tsconfig.json",

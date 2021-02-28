@@ -1,11 +1,12 @@
 import {AsmFunction, InstructionStructure, ptrType} from './index';
-import {convertToTwosComp, getTypes, operandType} from '../../functions/getTypes';
+import {getTypes, operandType} from '../../functions/getTypes';
 import {Table} from '32bit-adressing-table-modrm';
 import {HashMap} from '../../helper/hashMap';
 import {ThirtyTwoBitRegisters} from '../registers';
 import {rotate} from '../../functions/rotate';
 import {everythingAfterSlashRegex} from '../regex';
-import has = Reflect.has;
+import {makeValueToByte} from '../../functions/makeValueToByte';
+import {convertToTwosComp} from '../../functions/twosComplement';
 
 const ADD_TABLE = new HashMap<InstructionStructure, string>()
     .set({operation: 'add', operand1: 'al', operand2: 'imm8'}, '04 ib')
@@ -178,19 +179,6 @@ export const setLengthWhenReg32AndImm16 = (op: string, opCode: string) => {
         op = makeValueToByte(op, 8);
     }
     return op;
-};
-
-export const makeValueToByte = (v: string, byte: 2 | 4 | 8) => {
-    if (v.length < byte) {
-        for (let i = 0; v.length < byte; i++) {
-            v = '0' + v;
-        }
-    }
-    if (v.length > byte) {
-        const diff = v.length - byte;
-        v = v.slice(diff);
-    }
-    return v;
 };
 
 export const getRMByte = (s: string): [string, string | undefined] => {
