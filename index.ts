@@ -1,3 +1,3 @@
-import {Assembler} from './src/asm';
+import {Assembler as _Assembler} from './src/asm';
 
-export default Assembler;
+export const Assembler = _Assembler;
