@@ -13,6 +13,7 @@ import {removeFalsy} from '../../helper/utils/object.extensions';
 import {Table} from '32bit-adressing-table-modrm';
 import {rotate} from '../../functions/rotate';
 import {makeValueToByte} from '../../functions/makeValueToByte';
+import {makeHexLengthEven} from '../../functions/makeHexLengthEven';
 
 export interface OpCode {
     opCode: string;
@@ -49,10 +50,10 @@ export const generateCode = (
     let operand2: OperandType | undefined;
     let result;
     if (op1) {
-        operand1 = getOperand(op1.toLowerCase());
+        operand1 = getOperand(op1.toLowerCase(), ptrType);
     }
     if (op2) {
-        operand2 = getOperand(op2.toLowerCase());
+        operand2 = getOperand(op2.toLowerCase(), ptrType);
     }
     // get OpCode
     let opCode;
@@ -68,37 +69,133 @@ export const generateCode = (
             opCode = table?.get(removeFalsy({operation: ins, operand1: operand1?.type, operand2: op2Type}));
         }
     }
+
     const [is16BitMode, is16BitAddressMode] = checkMode(operand1, operand2, ptrType);
-    result = (is16BitAddressMode ? '66' : '') + (is16BitMode ? '66' : '') + opCode?.opCode;
-    if (opCode?.modRmByte) {
+    result = (is16BitAddressMode ? '67' : '') + (is16BitMode ? '66' : '') + opCode?.opCode;
+    if (opCode?.modRmByte) { // check rmByte
         result += processRmByte(opCode.modRmByte, operand1!);
     }
-    if (opCode?.length) {
+    if (opCode?.length) { // if opcode hase fixed length
         if (is16BitMode && opCode?.length === 'd') {
-            result += processLength('w', operand2?.value!);
+            result += processLength(operand2?.value!, 'w');
         } else {
-            result += processLength(opCode.length, operand2?.value!);
+            result += processLength(operand2?.value!, opCode.length);
+        }
+    } else {
+        //check register, register
+        if (operand1?.isRegisterOnly && operand2?.isRegisterOnly) { // both are registers
+            if (operand1?.type !== operand2?.type || operand1?.is16Bit !== operand2.is16Bit) {
+                throw new Error('Invalid operand size!');
+            }
+            result += getValFromTable(operand1.register!, operand2.register!);
+        } else { // check register, memory
+            if (operand1?.isRegisterOnly) {
+                if (operand2?.isDisplacementOnly) { //[111]
+                    result += getValFromTable(processOperand(operand1)!, 'disp32');
+                    result += processLength(operand2.displacement!, 'd');
+                } else {
+                    if (operand2?.isAddressMode) { //[ax]
+                        result = processRegMem(operand1, operand2, result, true);
+                    } else { // [eax*1]
+                        if (operand2?.constant) { // [eax*2]
+                            if (operand2?.register2) { // [eax+eax*1]
+                                result = processRegisterMemConst(operand1, operand2, result, operand2?.register2);
+                            } else {
+                                result = processRegisterMemConst(operand1, operand2, result);
+                            }
+                        } else {
+                            result = processRegMem(operand1, operand2, result);
+                        }
+
+                    }
+                }
+
+            } else {
+                result += getValFromTable(processOperand(operand1)!, processOperand(operand2));
+            }
         }
     }
     return result;
 };
-export const processLength = (l: 'b' | 'w' | 'd', val: string) => {
+const getValFromTable = (operand1, operand2, type?) => {
+    const val = Table.getValueFromTable(operand1, operand2, type);
+    if (val) {
+        return val;
+    }
+    throw new Error('Invalid operand');
+};
+
+const processRegisterMemConst = (operand1, operand2, result, register2?) => {
+    const temp = processOperand(operand2);
+    const sib = '[sib]' + (operand2.displacement ? convertDisplacement(operand2.displacement) : '');
+    result += getValFromTable(processOperand(operand1)!, sib);
+    result += getValFromTable(register2 ? operand2.register : '[*]', register2 ? `[${register2}*${operand2.constant}]` : temp, '32sib');
+    if (!register2) {
+        if (operand2.displacement) {
+            result += rotate(makeValueToByte(operand2.displacement, 8));
+        } else {
+            result += makeValueToByte('', 8);
+        }
+    } else {
+        if (operand2.displacement) {
+            result += rotate(makeValueToByte(operand2.displacement, sib.includes('32') ? 8 : 2));
+        }
+    }
+    return result;
+};
+const processRegMem = (operand1, operand2, result, is16bit?: boolean) => {
+    let temp = processOperand(operand2, is16bit);
+    if (is16bit) {
+        temp = temp?.replace('32', '16')!;
+    }
+    result += getValFromTable(processOperand(operand1)!, temp, is16bit ? '16rm' : '32rm');
+    if (operand2.displacement) {
+        let disp;
+        if (is16bit) {
+            disp = Array.from(rotate(makeHexLengthEven(operand2.displacement))).filter((_, index) => index < (temp?.includes('8') ? 2 : 4)).toString().replace(/,/g, '');
+        } else {
+            disp = rotate(makeValueToByte(operand2.displacement, temp?.includes('32') ? 8 : 2));
+        }
+        return result + disp;
+    }
+    return result;
+};
+export const processLength = (val: string, l: 'b' | 'w' | 'd') => {
     const length = l === 'b' ? 2 : l === 'w' ? 4 : 8;
     return rotate(makeValueToByte(val, length));
 };
 
 export const getOpCodeIfOp1IsRegister = (operand, table, ins, operand2) => {
     if (operand.register) { // e.g add al, op2
-        return table?.get(removeFalsy({operation: ins, operand1: operand.register, operand2: operand2?.type}));
+        const t = table?.get(removeFalsy({operation: ins, operand1: operand.register, operand2: operand2?.type}));
+        if (t) {
+            return t;
+        }
     }
+    if (operand2.isDisplacementOnly) { // find possible displacement
+        const opCode;
+        ['8', '32'].forEach(m => {
+            const t = table?.get(removeFalsy({
+                    operation: ins,
+                    operand1: operand.type,
+                    operand2: 'm' + m
+                })
+            );
+            if (t) {
+                opCode = t;
+            }
+        });
+        return opCode;
+    }
+
 };
-export const processOperand = (op?: OperandType) => {
+export const processOperand = (op?: OperandType, ignore16?: boolean) => {
     let operand: string;
     if (op?.constant) {
-        operand = '[' + op!.register + '*' + op!.constant + ']';
+        operand = '[' + op!.register + (op!.constant !== '1' ? '*' + op!.constant : '') + ']';
     } else {
         if (op?.isMemory) {
-            operand = '[' + op!.register + (op!.register2 ?? '') + ']' + convertDisplacement(op!.displacement);
+            operand = '[' + op!.register + (op!.register2 ? '+' + op!.register2 : '') + ']' + convertDisplacement(op!.displacement, ignore16);
         } else {
             operand = op?.register!;
         }
@@ -109,23 +206,23 @@ export const processOperand = (op?: OperandType) => {
 export const processRmByte = (modRmByte: string, op1: OperandType) => {
     const isSib = !!op1.constant;
     const operand1 = processOperand(op1);
-    const tableResult = Table.getValueFromTable(modRmByte, isSib ? '[sib]' + convertDisplacement(op1.displacement) : operand1);
+    const tableResult = Table.getValueFromTable(modRmByte, isSib ? '[sib]' + convertDisplacement(op1.displacement)! : operand1!);
     return tableResult;
 };
 
-export const convertDisplacement = (disp?: string) => {
+export const convertDisplacement = (disp?: string, ignore16?: boolean) => {
     if (!disp) {
         return '';
     }
-    return '+disp' + length(disp, true);
+    return '+disp' + length(disp, ignore16 !== undefined ? ignore16 : true);
 };
 
 export const checkMode = (op1?: OperandType, op2?: OperandType, ptrType?: ptrType) => {
     if (!op1 && !op2) {
         return [false, false];
     }
-    let isAddressMode = ptrType === 'word';
-    let is16bit = op1?.register && op1.is16Bit || op2?.register && op2.is16Bit;
+    let isAddressMode = ptrType === 'word' || op2?.isAddressMode || op1?.isAddressMode;
+    let is16bit = op1?.register && op1.is16Bit;
     return [is16bit, isAddressMode];
 };
 
@@ -139,11 +236,14 @@ export type types = 'r32' | 'r8' | 'r16' | 'm32' | 'm8' | 'm16' | 'imm32' | 'imm
 export interface OperandType {
     type: types;
     isMemory?: boolean;
+    isDisplacementOnly?: boolean;
+    isRegisterOnly?: boolean;
     register?: string;
     constant?: string;
     displacement?: string;
     register2?: string;
     is16Bit?: boolean;
+    isAddressMode?: boolean;
     value?: string;
     isNegativeDisp?: boolean;
 }
@@ -153,7 +253,7 @@ const processReg = (s: string): OperandType => {
         return {type: 'm8', register: s, isMemory: true};
     }
     if (SixteenBitRegisters.has(s)) {
-        return {type: 'm32', register: 'e' + s, is16Bit: true, isMemory: true};
+        return {type: 'm32', register: s, is16Bit: true, isMemory: true, isAddressMode: true};
     }
     if (ThirtyTwoBitRegisters.has(s)) {
         return {type: 'm32', register: s, isMemory: true};
@@ -164,7 +264,8 @@ const processReg = (s: string): OperandType => {
 const processRegConst = (s: string): OperandType => {
     const [reg, constant] = s.split('*');
     if (ThirtyTwoBitRegisters.has(reg)) {
-        return {type: 'm32', register: reg, constant: constant !== '1' ? constant : undefined, isMemory: true};
+        const c = constant ?? '1';
+        return {type: 'm32', register: reg, constant: c, isMemory: true};
     }
     throw Error('Unknown register!');
 };
@@ -176,10 +277,10 @@ const processRegReg = (s: string): OperandType => {
     if (SixteenBitRegisters.has(reg1) && SixteenBitRegisters.has(reg2)) {
         return {
             type: 'm32',
-            register: 'e' + reg1,
-            register2: 'e' + reg2,
-            constant: constant !== '1' ? constant : undefined,
+            register: reg1,
+            register2: reg2,
             is16Bit: true,
+            isAddressMode: true,
             isMemory: true
         };
     }
@@ -188,20 +289,20 @@ const processRegReg = (s: string): OperandType => {
             type: 'm32',
             register: reg1,
             register2: reg2,
-            constant: constant !== '1' ? constant : undefined,
+            constant: constant ?? '1',
             isMemory: true
         };
     }
     throw Error('Invalid [reg+reg]!');
 };
 
-const processRegDisp = (s: string): OperandType => {
+const processRegDisp = (s: string, ptr: ptrType): OperandType => {
     const [reg, displacement] = s.split('+');
     if (EightBitRegisters.has(reg)) {
         return {type: 'm8', register: reg, displacement, isMemory: true};
     }
     if (SixteenBitRegisters.has(reg)) {
-        return {type: 'm32', register: 'e' + reg, displacement, is16Bit: true, isMemory: true};
+        return {type: 'm32', register: reg, displacement, is16Bit: true, isAddressMode: true, isMemory: true};
     }
     if (ThirtyTwoBitRegisters.has(reg)) {
         return {type: 'm32', register: reg, displacement, isMemory: true};
@@ -209,35 +310,46 @@ const processRegDisp = (s: string): OperandType => {
     throw Error('Unknown register!');
 };
 
-const processRegRegDisp = (s: string): OperandType => {
+const processRegRegDisp = (s: string, ptr: ptrType): OperandType => {
     const [register1, register2, displacement] = s.split('+');
-    const regReg = processRegReg(register1 + register2);
+    const regReg = processRegReg(register1 + '+' + register2);
     return {...regReg, displacement: displacement, isMemory: true};
     throw Error('Unknown register!');
 };
 
-const processDisp = (s: string): OperandType => {
+const processDisp = (s: string, ptr: ptrType): OperandType => {
     const type = 'm' + length(s) as types;
-    return {type: type === 'm16' ? 'm32' : type, displacement: s, is16Bit: type === 'm16', isMemory: true};
+    // const type = 'm' + processPtr(ptr) as types;
+    return {
+        type: type === 'm16' ? 'm32' : type,
+        displacement: s,
+        is16Bit: ptr === 'word',
+        isMemory: true,
+        isDisplacementOnly: true
+    };
     throw Error('Unknown register!');
 };
 
-const processRegConstDisp = (s: string): OperandType => {
+const processPtr = (ptr: ptrType) => {
+    return ptr === 'byte' ? '8' : '32';
+};
+
+const processRegConstDisp = (s: string, ptr: ptrType): OperandType => {
     const [register, displacement] = s.split('+');
     const regConst = processRegConst(register);
     return {...regConst, displacement};
     throw Error('Unknown register!');
 };
 
-export const getOperand = (op: string): OperandType => {
+export const getOperand = (op: string, ptr: ptrType): OperandType => {
     if (EightBitRegisters.has(op)) {
-        return {type: 'r8', register: op};
+        return {type: 'r8', isRegisterOnly: true, register: op};
     }
     if (SixteenBitRegisters.has(op)) {
-        return {type: 'r32', register: 'e' + op, is16Bit: true};
+        return {type: 'r32', isRegisterOnly: true, register: 'e' + op, is16Bit: true};
     }
     if (ThirtyTwoBitRegisters.has(op)) {
-        return {type: 'r32', register: op};
+        return {type: 'r32', isRegisterOnly: true, register: op};
     }
     if (op.includes('[')) {
         let opWithoutBrackets = op.removeBrackets();
@@ -256,17 +368,17 @@ export const getOperand = (op: string): OperandType => {
             case 'reg': // [eax]
                 return processReg(opWithoutBrackets);
             case 'disp': // [111]....
-                return {...processDisp(opWithoutBrackets), isNegativeDisp: containsNegativeDisplacement};
+                return {...processDisp(opWithoutBrackets, ptr), isNegativeDisp: containsNegativeDisplacement};
             case 'reg*constant':
                 return processRegConst(opWithoutBrackets);
             case 'reg+disp':
-                return {...processRegDisp(opWithoutBrackets), isNegativeDisp: containsNegativeDisplacement};
+                return {...processRegDisp(opWithoutBrackets, ptr), isNegativeDisp: containsNegativeDisplacement};
             case 'reg+reg':
                 return processRegReg(opWithoutBrackets);
             case 'reg+reg+disp':
-                return {...processRegRegDisp(opWithoutBrackets), isNegativeDisp: containsNegativeDisplacement};
+                return {...processRegRegDisp(opWithoutBrackets, ptr), isNegativeDisp: containsNegativeDisplacement};
             case 'reg*constant+disp':
-                return {...processRegConstDisp(opWithoutBrackets), isNegativeDisp: containsNegativeDisplacement};
+                return {...processRegConstDisp(opWithoutBrackets, ptr), isNegativeDisp: containsNegativeDisplacement};
         }
     }
     // must be imm
