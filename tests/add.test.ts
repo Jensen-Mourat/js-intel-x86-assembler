@@ -1,6 +1,6 @@
 import {suite, test} from '@testdeck/mocha';
 import * as _chai from 'chai';
-import {ADD} from '../src/constants/AsmFunctions/ADD';
+import {ADD} from '../src/constants/AsmFunctions/ADD.new';
 import {PARAMETERS} from './parameters';
 
 _chai.should();
@@ -12,16 +12,20 @@ class addTest {
 
     }
 
+    @test 'random'() {
+        ADD.generateMachineCode('[eax]', 'ebx', 'dword').should.equal('0118');
+    }
+
     @test 'al with second operand as bytes'() {
         ADD.generateMachineCode('al', PARAMETERS.oneByte).should.equal('04' + PARAMETERS.oneByte);
-        (() => ADD.generateMachineCode('al', PARAMETERS.twoBytes)).should.throw();
-        (() => ADD.generateMachineCode('al', PARAMETERS.fourBytes)).should.throw();
+        ADD.generateMachineCode('al', PARAMETERS.twoBytes).should.equal('0434');
+        ADD.generateMachineCode('al', PARAMETERS.fourBytes).should.equal('0478');
     }
 
     @test 'ax with second operand as bytes'() {
         ADD.generateMachineCode('ax', PARAMETERS.oneByte).should.equal('6683C0' + PARAMETERS.oneByte);
         ADD.generateMachineCode('ax', PARAMETERS.twoBytes).should.equal('6605' + PARAMETERS.twoBytesRotated);
-        (() => ADD.generateMachineCode('ax', PARAMETERS.fourBytes)).should.throw();
+        ADD.generateMachineCode('ax', PARAMETERS.fourBytes).should.equal('66057856');
     }
 
     @test 'eax with second operand as bytes'() {
