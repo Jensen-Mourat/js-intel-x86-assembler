@@ -444,25 +444,25 @@ class addTest {
 
     @test 'mr32 and bytes'() {
         (() => ADD.generateMachineCode('[eax]', '0')).should.throw;
-        ADD.generateMachineCode('[eax]', '1').should.equal('810001000000');
-        ADD.generateMachineCode('[eax]', 'FF').should.equal('8100FF000000');
-        ADD.generateMachineCode('[eax]', '80').should.equal('810080000000');
-        ADD.generateMachineCode('[edx]', 'FFFF').should.equal('8102FFFF0000');
-        ADD.generateMachineCode('[eax]', '1111').should.equal('810011110000');
-        ADD.generateMachineCode('[eax]', '1111111').should.equal('810011111101');
-        ADD.generateMachineCode('[eax]', 'FFFFFFFF').should.equal('8100FFFFFFFF');
+        ADD.generateMachineCode('[eax]', '1', 'byte').should.equal('800001');
+        ADD.generateMachineCode('[eax]', 'FF', 'word').should.equal('668100FF00');
+        ADD.generateMachineCode('[eax]', '80', 'dword').should.equal('810080000000');
+        ADD.generateMachineCode('[edx]', 'FFFF', 'byte').should.equal('8002FF');
+        ADD.generateMachineCode('[eax]', '1111', 'word').should.equal('6681001111');
+        ADD.generateMachineCode('[eax]', '1111111', 'dword').should.equal('810011111101');
+        ADD.generateMachineCode('[eax]', 'FFFFFFFF', 'dword').should.equal('8100FFFFFFFF');
     }
 
     @test 'mr32*constant and bytes'() {
-        ADD.generateMachineCode('[eax*2]', '1').should.equal('8104450000000001000000');
-        ADD.generateMachineCode('[eax*4]', 'FF').should.equal('81048500000000FF000000');
-        ADD.generateMachineCode('[eax*8]', '80').should.equal('8104C50000000080000000');
-        ADD.generateMachineCode('[edx*1]', 'FFFF').should.equal('81041500000000FFFF0000');
-        ADD.generateMachineCode('[ebx*2]', '1111').should.equal('81045D0000000011110000');
-        ADD.generateMachineCode('[ecx*4]', '1111111').should.equal('81048D0000000011111101');
-        ADD.generateMachineCode('[edi*8]', 'FFFFFFFF').should.equal('8104FD00000000FFFFFFFF');
-        (() => ADD.generateMachineCode('[eax*3]', 'FFFFFFFF')).should.throw;
-        (() => ADD.generateMachineCode('[eax*5]', 'FFFFFFFF')).should.throw;
+        ADD.generateMachineCode('[eax*2]', '1', 'byte').should.equal('8004450000000001');
+        ADD.generateMachineCode('[eax*4]', 'FF', 'word').should.equal('6681048500000000FF00');
+        ADD.generateMachineCode('[eax*8]', '80', 'dword').should.equal('8104C50000000080000000');
+        ADD.generateMachineCode('[edx*1]', 'FFFF', 'byte').should.equal('80041500000000FF');
+        ADD.generateMachineCode('[ebx*2]', '1111', 'word').should.equal('6681045D000000001111');
+        ADD.generateMachineCode('[ecx*4]', '1111111', 'dword').should.equal('81048D0000000011111101');
+        ADD.generateMachineCode('[edi*8]', 'FFFFFFFF', 'dword').should.equal('8304FD00000000FF');
+        (() => ADD.generateMachineCode('[eax*3]', 'FFFFFFFF', 'word')).should.throw;
+        (() => ADD.generateMachineCode('[eax*5]', 'FFFFFFFF', 'dword')).should.throw;
         (() => ADD.generateMachineCode('[eax*1]', '0')).should.throw;
     }
 
