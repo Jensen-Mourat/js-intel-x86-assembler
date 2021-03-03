@@ -244,8 +244,8 @@ export const checkMode = (op1?: OperandType, op2?: OperandType, ptrType?: ptrTyp
     if (!op1 && !op2) {
         return [false, false];
     }
-    let isAddressMode = op2?.isAddressMode || op1?.isAddressMode;
-    let is16bit = ptrType === 'word' || op1?.register && op1.is16Bit;
+    const isAddressMode = op2?.isAddressMode || op1?.isAddressMode;
+    const is16bit = ptrType === 'word' || op1?.register && op1.is16Bit;
     return [is16bit, isAddressMode];
 };
 
@@ -290,7 +290,7 @@ const processReg = (s: string, ptr?: ptrType): OperandType => {
     throw Error('Unknown register!');
 };
 
-const processRegConst = (s: string, ptr: ptrType): OperandType => {
+const processRegConst = (s: string, ptr?: ptrType): OperandType => {
     const [reg, constant] = s.split('*');
     if (ThirtyTwoBitRegisters.has(reg)) {
         const c = constant ?? '1';
@@ -374,7 +374,7 @@ const processRegRegDisp = (s: string, ptr: ptrType, containsNegDisp?: boolean): 
     displacement = displacement.toUpperCase();
     displacement = processNegDisplacement(displacement, containsNegDisp)!;
     const regReg = processRegReg(register1 + '+' + register2);
-    return {...regReg, displacement: displacement, isMemory: true};
+    return {...regReg, displacement, isMemory: true};
 };
 
 const processDisp = (s: string, ptr: ptrType, containsNegDisp?: boolean): OperandType => {
