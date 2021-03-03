@@ -80,7 +80,7 @@ export const generateCode = (
   // get OpCode
   let opCode;
   // e.g add al, op2
-  opCode = getOpCodeIfOp1IsRegister(operand1, table, ins, operand2);
+  opCode = getOpCodeIfOp1IsRegister(operand1!, table, ins, operand2);
   if (!opCode) {
     // general add op1, op2
     opCode = table?.get(removeFalsy({ operation: ins, operand1: operand1?.type, operand2: operand2?.type }));
@@ -88,7 +88,7 @@ export const generateCode = (
   if (!opCode && operand2?.value) {
     // check all op2 = imm
     const op2Type = operand2.type.includes('32') ? operand2.type.replace('32', '8') : operand2.type.replace('8', '32');
-    opCode = getOpCodeIfOp1IsRegister(operand1, table, ins, { ...operand2, type: op2Type });
+    opCode = getOpCodeIfOp1IsRegister(operand1!, table, ins!, { ...operand2, type: op2Type as types });
     if (!opCode) {
       opCode = table?.get(removeFalsy({ operation: ins, operand1: operand1?.type, operand2: op2Type }));
     }
@@ -150,7 +150,7 @@ export const generateCode = (
                 result = processRegisterMemConst(operand1, operand2, result);
               }
             } else {
-              result = processRegMem(operand1, operand2, result);
+              result = processRegMem(operand1, operand2!, result);
             }
           }
         }
@@ -473,26 +473,26 @@ export const getOperand = (op: string, ptr?: ptrType): OperandType => {
         return processReg(opWithoutBrackets, ptr);
       case 'disp': // [111]....
         return {
-          ...processDisp(opWithoutBrackets, ptr, containsNegativeDisplacement),
+          ...processDisp(opWithoutBrackets, ptr!, containsNegativeDisplacement),
           isNegativeDisp: containsNegativeDisplacement,
         };
       case 'reg*constant':
         return processRegConst(opWithoutBrackets, ptr);
       case 'reg+disp':
         return {
-          ...processRegDisp(opWithoutBrackets, ptr, containsNegativeDisplacement),
+          ...processRegDisp(opWithoutBrackets, ptr!, containsNegativeDisplacement),
           isNegativeDisp: containsNegativeDisplacement,
         };
       case 'reg+reg':
         return processRegReg(opWithoutBrackets);
       case 'reg+reg+disp':
         return {
-          ...processRegRegDisp(opWithoutBrackets, ptr, containsNegativeDisplacement),
+          ...processRegRegDisp(opWithoutBrackets, ptr!, containsNegativeDisplacement),
           isNegativeDisp: containsNegativeDisplacement,
         };
       case 'reg*constant+disp':
         return {
-          ...processRegConstDisp(opWithoutBrackets, ptr, containsNegativeDisplacement),
+          ...processRegConstDisp(opWithoutBrackets, ptr!, containsNegativeDisplacement),
           isNegativeDisp: containsNegativeDisplacement,
         };
     }
