@@ -155,13 +155,13 @@ export const generateCode = (
           }
         }
       } else {
-        result += getValFromTable(processOperand(operand1)!, processOperand(operand2));
+        result += getValFromTable(processOperand(operand1)!, processOperand(operand2)!);
       }
     }
   }
   return result.toUpperCase();
 };
-const getValFromTable = (operand1, operand2, type?) => {
+const getValFromTable = (operand1:string, operand2:string, type?: '32rm' | '32sib' | '16rm') => {
   const val = Table.getValueFromTable(operand1, operand2, type);
   if (val) {
     return val;
@@ -169,13 +169,13 @@ const getValFromTable = (operand1, operand2, type?) => {
   throw new Error('Invalid operand');
 };
 
-const processRegisterMemConst = (operand1, operand2, result, register2?) => {
+const processRegisterMemConst = (operand1:OperandType, operand2: OperandType, result:string, register2?: string) => {
   const temp = processOperand(operand2);
   const sib = '[sib]' + (operand2.displacement && register2 ? convertDisplacement(operand2.displacement) : '');
   result += getValFromTable(processOperand(operand1)!, sib);
   result += getValFromTable(
-    register2 ? operand2.register : '[*]',
-    register2 ? `[${register2}*${operand2.constant}]` : temp,
+    register2 ? operand2.register! : '[*]',
+    register2 ? `[${register2}*${operand2.constant}]` : temp!,
     '32sib',
   );
   if (!register2) {
@@ -191,12 +191,12 @@ const processRegisterMemConst = (operand1, operand2, result, register2?) => {
   }
   return result;
 };
-const processRegMem = (operand1, operand2, result, is16bit?: boolean) => {
+const processRegMem = (operand1:OperandType, operand2:OperandType, result: string, is16bit?: boolean) => {
   let temp = processOperand(operand2, is16bit);
   if (is16bit) {
     temp = temp?.replace('32', '16')!;
   }
-  result += getValFromTable(processOperand(operand1)!, temp, is16bit ? '16rm' : '32rm');
+  result += getValFromTable(processOperand(operand1)!, temp!, is16bit ? '16rm' : '32rm');
   if (operand2.displacement) {
     let disp;
     if (is16bit) {
@@ -216,7 +216,7 @@ export const processLength = (val: string, l: 'b' | 'w' | 'd') => {
   return rotate(makeValueToByte(val, length));
 };
 
-export const getOpCodeIfOp1IsRegister = (operand, table, ins, operand2) => {
+export const getOpCodeIfOp1IsRegister = (operand:OperandType, table: any, ins: string, operand2:OperandType) => {
   if (operand.register && !operand.isMemory) {
     // e.g add al, op2
     const t = table?.get(removeFalsy({ operation: ins, operand1: operand.register, operand2: operand2?.type }));
@@ -226,7 +226,7 @@ export const getOpCodeIfOp1IsRegister = (operand, table, ins, operand2) => {
   }
   if (operand2.isDisplacementOnly) {
     // find possible displacement
-    const opCode;
+    let opCode;
     ['8', '32'].forEach((m) => {
       const t = table?.get(
         removeFalsy({
@@ -363,32 +363,33 @@ const processRegReg = (s: string): OperandType => {
   throw Error('Invalid [reg+reg]!');
 };
 const processNegDisplacement = (d: string, containsNegDisp?: boolean, makeToByte?: boolean): string | undefined => {
-  const dispHex = parseInt(d, 16);
-  if (d.length <= 2) {
+  let disp: string | undefined = d;
+  const dispHex = parseInt(disp, 16);
+  if (disp.length <= 2) {
     // ie one byte
     // check is 2s complement present for 8 bit disp
     if (containsNegDisp) {
       if (dispHex > parseInt('80', 16)) {
-        d = convertToTwosComp(makeValueToByte(d, 8));
+        disp = convertToTwosComp(makeValueToByte(disp, 8));
       } else {
-        d = convertToTwosComp(makeToByte ? makeValueToByte(d, 8) : d);
+        disp = convertToTwosComp(makeToByte ? makeValueToByte(disp, 8) : disp);
       }
     } else {
       if (dispHex > parseInt('7f', 16)) {
-        d = makeValueToByte(d, 8);
+        disp = makeValueToByte(disp, 8);
       } else {
-        d = makeHexLengthEven(d);
+        disp = makeHexLengthEven(disp);
       }
     }
   } else {
     if (containsNegDisp) {
-      d = convertToTwosComp(makeValueToByte(d, 8));
+      disp = convertToTwosComp(makeValueToByte(disp, 8));
     }
   }
-  if (parseInt(d, 16) === 0) {
-    d = undefined;
+  if (parseInt(disp, 16) === 0) {
+    disp = undefined;
   }
-  return d;
+  return disp;
 };
 
 const processRegDisp = (s: string, ptr: ptrType, containsNegDisp?: boolean): OperandType => {
@@ -444,7 +445,7 @@ const processRegConstDisp = (s: string, ptr: ptrType, containsNegDisp?: boolean)
   throw Error('Unknown register!');
 };
 
-export const getOperand = (op: string, ptr: ptrType): OperandType => {
+export const getOperand = (op: string, ptr?: ptrType): OperandType => {
   if (EightBitRegisters.has(op)) {
     return { type: 'r8', isRegisterOnly: true, register: op };
   }
