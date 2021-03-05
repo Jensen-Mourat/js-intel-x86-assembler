@@ -5,9 +5,8 @@ import { HashMap } from '../../helper/hashMap';
 
 const INT_TABLE = new HashMap<InstructionStructure, OpCode>()
   // Ignored table entry CC | INT 3 | NP | Valid | Valid | Interrupt 3—trap to debugger
-  .set({operation: 'int', operand1: 'imm8'}, {opCode: 'CD', length: 'b' })
-  .set({operation: 'into'}, {opCode: 'CE'});
-
+  .set({ operation: 'int', operand1: 'imm8' }, { opCode: 'CD', length: 'b' })
+  .set({ operation: 'into' }, { opCode: 'CE' });
 
 export const INT: AsmFunction = {
   generateMachineCode: (op1?: string, op2?: string, ptrType?: ptrType) => {
