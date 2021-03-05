@@ -1,12 +1,12 @@
-import { AsmFunction, InstructionStructure, ptrType } from './index';
-import { getTypes, operandType } from '../../functions/getTypes';
+import { AsmFunction, InstructionStructure, ptrType } from '../index';
+import { getTypes, operandType } from '../../../functions/getTypes';
 import { Table } from '32bit-adressing-table-modrm';
-import { HashMap } from '../../helper/hashMap';
-import { ThirtyTwoBitRegisters } from '../registers';
-import { rotate } from '../../functions/rotate';
-import { everythingAfterSlashRegex } from '../regex';
-import { makeValueToByte } from '../../functions/makeValueToByte';
-import { convertToTwosComp } from '../../functions/twosComplement';
+import { HashMap } from '../../../helper/hashMap';
+import { ThirtyTwoBitRegisters } from '../../registers';
+import { rotate } from '../../../functions/rotate';
+import { everythingAfterSlashRegex } from '../../regex';
+import { makeValueToByte } from '../../../functions/makeValueToByte';
+import { convertToTwosComp } from '../../../functions/twosComplement';
 
 const ADD_TABLE = new HashMap<InstructionStructure, string>()
   .set({ operation: 'add', operand1: 'al', operand2: 'imm8' }, '04 ib')

@@ -1,6 +1,6 @@
-import { AsmFunction, InstructionStructure, ptrType } from './index';
+import { AsmFunction, InstructionStructure, ptrType } from '../index';
 import { generateCode } from './ADD';
-import { HashMap } from '../../helper/hashMap';
+import { HashMap } from '../../../helper/hashMap';
 
 const MOV_TABLE = new HashMap<InstructionStructure, string>()
   .set({ operation: 'mov', operand1: 'r8', operand2: 'r8' }, '88 /r')

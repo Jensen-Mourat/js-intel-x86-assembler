@@ -1,7 +1,7 @@
 import {suite, test} from '@testdeck/mocha';
 import * as _chai from 'chai';
 import {PARAMETERS} from './parameters';
-import {MOV} from '../src/constants/AsmFunctions/MOV';
+import {MOV} from '../src/constants/AsmFunctions/backup/MOV';
 import {Assembler} from '../src/asm';
 import {convertToTwosComp} from '../src/functions/twosComplement';
 

@@ -25,6 +25,7 @@ export interface OpCode {
     modRmByte?: string;
     length?: 'b' | 'd' | 'w';
     isSigned?: boolean;
+    registerCode?: string;
 }
 
 const ADD_TABLE = new HashMap<InstructionStructure, OpCode>()
