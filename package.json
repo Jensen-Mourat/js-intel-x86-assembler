@@ -1,6 +1,6 @@
 {
   "name": "assembler-x86",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "An Intel x86 assembler, generates opCodes from assembly",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
