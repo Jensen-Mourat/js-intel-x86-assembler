@@ -1,7 +1,7 @@
 import {suite, test} from '@testdeck/mocha';
 import * as _chai from 'chai';
 import {PARAMETERS} from './parameters';
-import {MOV} from '../src/constants/AsmFunctions/backup/MOV';
+import {MOV} from '../src/constants/AsmFunctions/MOV';
 
 _chai.should();
 
@@ -13,15 +13,14 @@ class movTest {
     }
 
     @test 'al with second operand as bytes'() {
-        MOV.generateMachineCode('al', PARAMETERS.oneByte).should.equal('C6C0' + PARAMETERS.oneByte);
-        (() => MOV.generateMachineCode('al', PARAMETERS.twoBytes)).should.throw();
-        (() => MOV.generateMachineCode('al', PARAMETERS.fourBytes)).should.throw();
+        MOV.generateMachineCode('al', PARAMETERS.oneByte).should.equal('B0' + PARAMETERS.oneByte);
+        MOV.generateMachineCode('al', PARAMETERS.twoBytes).should.equal('B0' + PARAMETERS.twoBytes.substr(2));
+        MOV.generateMachineCode('al', PARAMETERS.fourBytes).should.equal('B0' + PARAMETERS.fourBytes.substr(6));
     }
 
     @test 'ax with second operand as bytes'() {
         MOV.generateMachineCode('ax', PARAMETERS.oneByte).should.equal('66B8' + PARAMETERS.oneByte + '00');
         MOV.generateMachineCode('ax', PARAMETERS.twoBytes).should.equal('66B8' + PARAMETERS.twoBytesRotated);
-        (() => MOV.generateMachineCode('ax', PARAMETERS.fourBytes)).should.throw();
     }
 
     @test 'eax with second operand as bytes'() {
@@ -31,32 +30,19 @@ class movTest {
     }
 
     @test 'r8 with second operand as bytes'() {
-        MOV.generateMachineCode('ah', PARAMETERS.oneByte).should.equal('80C4' + PARAMETERS.oneByte);
-        MOV.generateMachineCode('ah', '1').should.equal('80C4' + '01');
-        MOV.generateMachineCode('ch', PARAMETERS.oneByte).should.equal('80C5' + PARAMETERS.oneByte);
-        MOV.generateMachineCode('dh', PARAMETERS.oneByte).should.equal('80C6' + PARAMETERS.oneByte);
-        MOV.generateMachineCode('bh', PARAMETERS.oneByte).should.equal('80C7' + PARAMETERS.oneByte);
-        MOV.generateMachineCode('cl', PARAMETERS.oneByte).should.equal('80C1' + PARAMETERS.oneByte);
-        MOV.generateMachineCode('dl', PARAMETERS.oneByte).should.equal('80C2' + PARAMETERS.oneByte);
-        MOV.generateMachineCode('bl', PARAMETERS.oneByte).should.equal('80C3' + PARAMETERS.oneByte);
-        (() => MOV.generateMachineCode('ah', PARAMETERS.twoBytes)).should.throw();
-        (() => MOV.generateMachineCode('ch', PARAMETERS.twoBytes)).should.throw();
-        (() => MOV.generateMachineCode('dh', PARAMETERS.twoBytes)).should.throw();
-        (() => MOV.generateMachineCode('bh', PARAMETERS.twoBytes)).should.throw();
-        (() => MOV.generateMachineCode('cl', PARAMETERS.twoBytes)).should.throw();
-        (() => MOV.generateMachineCode('dl', PARAMETERS.twoBytes)).should.throw();
-        (() => MOV.generateMachineCode('bl', PARAMETERS.twoBytes)).should.throw();
-        (() => MOV.generateMachineCode('ah', PARAMETERS.fourBytes)).should.throw();
-        (() => MOV.generateMachineCode('ch', PARAMETERS.fourBytes)).should.throw();
-        (() => MOV.generateMachineCode('dh', PARAMETERS.fourBytes)).should.throw();
-        (() => MOV.generateMachineCode('bh', PARAMETERS.fourBytes)).should.throw();
-        (() => MOV.generateMachineCode('cl', PARAMETERS.fourBytes)).should.throw();
-        (() => MOV.generateMachineCode('dl', PARAMETERS.fourBytes)).should.throw();
-        (() => MOV.generateMachineCode('bl', PARAMETERS.fourBytes)).should.throw();
+        MOV.generateMachineCode('ah', PARAMETERS.oneByte).should.equal('B4' + PARAMETERS.oneByte);
+        MOV.generateMachineCode('ah', '1').should.equal('B4' + '01');
+        MOV.generateMachineCode('ch', PARAMETERS.oneByte).should.equal('B5' + PARAMETERS.oneByte);
+        MOV.generateMachineCode('dh', PARAMETERS.oneByte).should.equal('B6' + PARAMETERS.oneByte);
+        MOV.generateMachineCode('bh', PARAMETERS.oneByte).should.equal('B7' + PARAMETERS.oneByte);
+        MOV.generateMachineCode('cl', PARAMETERS.oneByte).should.equal('B1' + PARAMETERS.oneByte);
+        MOV.generateMachineCode('dl', PARAMETERS.oneByte).should.equal('B2' + PARAMETERS.oneByte);
+        MOV.generateMachineCode('bl', PARAMETERS.oneByte).should.equal('B3' + PARAMETERS.oneByte);
+
     }
 
     @test 'r16 with second operand as bytes'() {
-        MOV.generateMachineCode('di', PARAMETERS.oneByte).should.equal('6683C7' + PARAMETERS.oneByte);
+        MOV.generateMachineCode('di', PARAMETERS.oneByte).should.equal('66BF' + PARAMETERS.oneByte);
         MOV.generateMachineCode('di', '1').should.equal('6683C7' + '01');
         MOV.generateMachineCode('cx', PARAMETERS.oneByte).should.equal('6683C1' + PARAMETERS.oneByte);
         MOV.generateMachineCode('dx', PARAMETERS.oneByte).should.equal('6683C2' + PARAMETERS.oneByte);
@@ -72,13 +58,6 @@ class movTest {
         MOV.generateMachineCode('sp', PARAMETERS.twoBytes).should.equal('6681C4' + PARAMETERS.twoBytesRotated);
         MOV.generateMachineCode('bp', PARAMETERS.twoBytes).should.equal('6681C5' + PARAMETERS.twoBytesRotated);
         MOV.generateMachineCode('si', PARAMETERS.twoBytes).should.equal('6681C6' + PARAMETERS.twoBytesRotated);
-        (() => MOV.generateMachineCode('di', PARAMETERS.fourBytes)).should.throw();
-        (() => MOV.generateMachineCode('cx', PARAMETERS.fourBytes)).should.throw();
-        (() => MOV.generateMachineCode('dx', PARAMETERS.fourBytes)).should.throw();
-        (() => MOV.generateMachineCode('bx', PARAMETERS.fourBytes)).should.throw();
-        (() => MOV.generateMachineCode('sp', PARAMETERS.fourBytes)).should.throw();
-        (() => MOV.generateMachineCode('bp', PARAMETERS.fourBytes)).should.throw();
-        (() => MOV.generateMachineCode('si', PARAMETERS.fourBytes)).should.throw();
     }
 
     @test 'r32 with second operand as bytes'() {
