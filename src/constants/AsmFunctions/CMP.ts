@@ -1,7 +1,7 @@
-import { OpCode } from './ADD.new';
-import { AsmFunction, InstructionStructure, ptrType } from './index';
-import { generateCode } from './ADD.new';
+import { AsmFunction, InstructionStructure, PtrType } from './index';
 import { HashMap } from '../../helper/hashMap';
+import {generateCode} from '../../functions/generateCode';
+import {OpCode} from '../interfaces';
 
 const CMP_TABLE = new HashMap<InstructionStructure, OpCode>()
   .set({ operation: 'cmp', operand1: 'al', operand2: 'imm8' }, { opCode: '3C', length: 'b' })
@@ -31,7 +31,7 @@ const CMP_TABLE = new HashMap<InstructionStructure, OpCode>()
   .set({ operation: 'cmp', operand1: 'r32', operand2: 'm32' }, { opCode: '3B' });
 
 export const CMP: AsmFunction = {
-  generateMachineCode: (op1?: string, op2?: string, ptrType?: ptrType) => {
-    return generateCode(op1, op2, 'cmp', ptrType, [2], CMP_TABLE);
+  generateMachineCode: (op1?: string, op2?: string, ptrType?: PtrType) => {
+    return generateCode(op1, op2, 'cmp', ptrType, CMP_TABLE);
   },
 };

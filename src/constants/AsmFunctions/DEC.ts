@@ -1,7 +1,7 @@
-import { OpCode } from './ADD.new';
-import { AsmFunction, InstructionStructure, ptrType } from './index';
-import { generateCode } from './ADD.new';
+import { AsmFunction, InstructionStructure, PtrType } from './index';
 import { HashMap } from '../../helper/hashMap';
+import {generateCode} from '../../functions/generateCode';
+import {OpCode} from '../interfaces';
 
 const DEC_TABLE = new HashMap<InstructionStructure, OpCode>()
   .set({ operation: 'dec', operand1: 'r8' }, { opCode: 'FE', modRmByte: '1' })
@@ -14,7 +14,7 @@ const DEC_TABLE = new HashMap<InstructionStructure, OpCode>()
   .set({ operation: 'dec', operand1: 'r32' }, { opCode: '48', registerCode: 'rd' });
 
 export const DEC: AsmFunction = {
-  generateMachineCode: (op1?: string, op2?: string, ptrType?: ptrType) => {
-    return generateCode(op1, op2, 'dec', ptrType, [2], DEC_TABLE);
+  generateMachineCode: (op1?: string, op2?: string, ptrType?: PtrType) => {
+    return generateCode(op1, op2, 'dec', ptrType, DEC_TABLE);
   },
 };

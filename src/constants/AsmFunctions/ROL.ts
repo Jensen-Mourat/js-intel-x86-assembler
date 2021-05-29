@@ -1,7 +1,7 @@
-import { OpCode } from './ADD.new';
-import { AsmFunction, InstructionStructure, ptrType } from './index';
-import { generateCode } from './ADD.new';
+import { AsmFunction, InstructionStructure, PtrType } from './index';
 import { HashMap } from '../../helper/hashMap';
+import {generateCode} from '../../functions/generateCode';
+import {OpCode} from '../interfaces';
 
 const ROL_TABLE = new HashMap<InstructionStructure, OpCode>()
   .set({ operation: 'rol', operand1: 'r8', operand2: 'cl' }, { opCode: 'D2', modRmByte: '0' })
@@ -18,7 +18,7 @@ const ROL_TABLE = new HashMap<InstructionStructure, OpCode>()
   .set({ operation: 'rol', operand1: 'm32', operand2: 'imm8' }, { opCode: 'C1', modRmByte: '0', length: 'b' });
 
 export const ROL: AsmFunction = {
-  generateMachineCode: (op1?: string, op2?: string, ptrType?: ptrType) => {
-    return generateCode(op1, op2, 'rol', ptrType, [2], ROL_TABLE);
+  generateMachineCode: (op1?: string, op2?: string, ptrType?: PtrType) => {
+    return generateCode(op1, op2, 'rol', ptrType, ROL_TABLE);
   },
 };

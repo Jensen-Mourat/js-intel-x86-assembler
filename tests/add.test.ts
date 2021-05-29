@@ -1,6 +1,6 @@
 import {suite, test} from '@testdeck/mocha';
 import * as _chai from 'chai';
-import {ADD} from '../src/constants/AsmFunctions/ADD.new';
+import {ADD} from '../src/constants/AsmFunctions/ADD';
 import {PARAMETERS} from './parameters';
 
 _chai.should();

@@ -1,7 +1,7 @@
-import { OpCode } from './ADD.new';
-import { AsmFunction, InstructionStructure, ptrType } from './index';
-import { generateCode } from './ADD.new';
+import { AsmFunction, InstructionStructure, PtrType } from './index';
 import { HashMap } from '../../helper/hashMap';
+import {generateCode} from '../../functions/generateCode';
+import {OpCode} from '../interfaces';
 
 const AND_TABLE = new HashMap<InstructionStructure, OpCode>()
   .set({ operation: 'and', operand1: 'al', operand2: 'imm8' }, { opCode: '24', length: 'b' })
@@ -42,7 +42,7 @@ const AND_TABLE = new HashMap<InstructionStructure, OpCode>()
   .set({ operation: 'and', operand1: 'r32', operand2: 'm32' }, { opCode: '23' });
 
 export const AND: AsmFunction = {
-  generateMachineCode: (op1?: string, op2?: string, ptrType?: ptrType) => {
-    return generateCode(op1, op2, 'and', ptrType, [2], AND_TABLE);
+  generateMachineCode: (op1?: string, op2?: string, ptrType?: PtrType) => {
+    return generateCode(op1, op2, 'and', ptrType, AND_TABLE);
   },
 };

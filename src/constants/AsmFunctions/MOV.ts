@@ -1,7 +1,7 @@
-import { AsmFunction, InstructionStructure, ptrType } from './index';
-import { generateCode } from './ADD.new';
+import { AsmFunction, InstructionStructure, PtrType } from './index';
 import { HashMap } from '../../helper/hashMap';
-import { OpCode } from './ADD.new';
+import {generateCode} from '../../functions/generateCode';
+import {OpCode} from '../interfaces';
 
 const MOV_TABLE = new HashMap<InstructionStructure, OpCode>()
   .set({ operation: 'mov', operand1: 'r8', operand2: 'r8' }, { opCode: '88' })
@@ -20,7 +20,7 @@ const MOV_TABLE = new HashMap<InstructionStructure, OpCode>()
   .set({ operation: 'mov', operand1: 'm16', operand2: 'imm16' }, { opCode: 'C7', length: 'w', modRmByte: '0' })
   .set({ operation: 'mov', operand1: 'm32', operand2: 'imm32' }, { opCode: 'C7', length: 'd', modRmByte: '0' });
 export const MOV: AsmFunction = {
-  generateMachineCode: (op1?: string, op2?: string, ptrType?: ptrType) => {
-    return generateCode(op1, op2, 'mov', ptrType, [2], MOV_TABLE);
+  generateMachineCode: (op1?: string, op2?: string, ptrType?: PtrType) => {
+    return generateCode(op1, op2, 'mov', ptrType, MOV_TABLE);
   },
 };

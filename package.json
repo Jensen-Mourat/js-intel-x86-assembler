@@ -34,6 +34,7 @@
   "devDependencies": {
     "@testdeck/mocha": "^0.1.2",
     "@types/chai": "^4.2.14",
+    "@types/node": "^14.14.41",
     "chai": "^4.2.0",
     "mocha": "^8.2.1",
     "nyc": "^15.1.0",

@@ -1,6 +1,7 @@
 import { HashMap } from '../../helper/hashMap';
-import { AsmFunction, InstructionStructure } from './index';
-import { generateCode, OpCode } from './ADD.new';
+import {AsmFunction, InstructionStructure, PtrType} from './index';
+import {generateCode} from '../../functions/generateCode';
+import {OpCode} from '../interfaces';
 
 const SUB_TABLE = new HashMap<InstructionStructure, OpCode>()
   .set({ operation: 'sub', operand1: 'al', operand2: 'imm8' }, { opCode: '2C', length: 'b' })
@@ -41,7 +42,7 @@ const SUB_TABLE = new HashMap<InstructionStructure, OpCode>()
   .set({ operation: 'sub', operand1: 'r32', operand2: 'm32' }, { opCode: '2B' });
 
 export const SUB: AsmFunction = {
-  generateMachineCode: (op1?: string, op2?: string, ptrType?: ptrType) => {
-    return generateCode(op1, op2, 'sub', ptrType, [2], SUB_TABLE);
+  generateMachineCode: (op1?: string, op2?: string, ptrType?: PtrType) => {
+    return generateCode(op1, op2, 'sub', ptrType, SUB_TABLE);
   },
 };

@@ -9,7 +9,7 @@ import {
   regRegDispRegex,
   regRegOnlyRegex,
 } from '../constants/regex';
-import { ptrType } from '../constants/AsmFunctions';
+import { PtrType } from '../constants/AsmFunctions';
 
 export const getTypes = (op: string): operandType[] => {
   if (EightBitRegisters.has(op)) {
@@ -291,4 +291,4 @@ export type operandType =
   | 'neg'
   | 'zero'
   | displacementTypes
-  | ptrType;
+  | PtrType;

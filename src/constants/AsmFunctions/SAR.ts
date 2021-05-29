@@ -1,7 +1,7 @@
-import { OpCode } from './ADD.new';
-import { generateCode } from './ADD.new';
 import { HashMap } from '../../helper/hashMap';
-import { AsmFunction, InstructionStructure, ptrType } from './index';
+import { AsmFunction, InstructionStructure, PtrType } from './index';
+import {generateCode} from '../../functions/generateCode';
+import {OpCode} from '../interfaces';
 
 const SAR_TABLE = new HashMap<InstructionStructure, OpCode>()
   .set({ operation: 'sar', operand1: 'r8', operand2: 'cl' }, { opCode: 'D2', modRmByte: '7' })
@@ -18,7 +18,7 @@ const SAR_TABLE = new HashMap<InstructionStructure, OpCode>()
   .set({ operation: 'sar', operand1: 'm32', operand2: 'imm8' }, { opCode: 'C1', modRmByte: '7', length: 'b' });
 
 export const SAR: AsmFunction = {
-  generateMachineCode: (op1?: string, op2?: string, ptrType?: ptrType) => {
-    return generateCode(op1, op2, 'sar', ptrType, [2], SAR_TABLE);
+  generateMachineCode: (op1?: string, op2?: string, ptrType?: PtrType) => {
+    return generateCode(op1, op2, 'sar', ptrType, SAR_TABLE);
   },
 };

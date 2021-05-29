@@ -1,7 +1,7 @@
-import { OpCode } from './ADD.new';
-import { AsmFunction, InstructionStructure, ptrType } from './index';
-import { generateCode } from './ADD.new';
+import { AsmFunction, InstructionStructure, PtrType } from './index';
 import { HashMap } from '../../helper/hashMap';
+import {generateCode} from '../../functions/generateCode';
+import {OpCode} from '../interfaces';
 
 const INC_TABLE = new HashMap<InstructionStructure, OpCode>()
   .set({ operation: 'inc', operand1: 'r8' }, { opCode: 'FE', modRmByte: '0' })
@@ -14,7 +14,7 @@ const INC_TABLE = new HashMap<InstructionStructure, OpCode>()
   .set({ operation: 'inc', operand1: 'r32' }, { opCode: '40', registerCode: 'rd' });
 
 export const INC: AsmFunction = {
-  generateMachineCode: (op1?: string, op2?: string, ptrType?: ptrType) => {
-    return generateCode(op1, op2, 'inc', ptrType, [2], INC_TABLE);
+  generateMachineCode: (op1?: string, op2?: string, ptrType?: PtrType) => {
+    return generateCode(op1, op2, 'inc', ptrType, INC_TABLE);
   },
 };

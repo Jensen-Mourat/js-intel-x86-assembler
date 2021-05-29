@@ -1,7 +1,7 @@
-import { OpCode } from './ADD.new';
-import { AsmFunction, InstructionStructure, ptrType } from './index';
-import { generateCode } from './ADD.new';
+import { AsmFunction, InstructionStructure, PtrType } from './index';
 import { HashMap } from '../../helper/hashMap';
+import {generateCode} from '../../functions/generateCode';
+import {OpCode} from '../interfaces';
 
 const ADC_TABLE = new HashMap<InstructionStructure, OpCode>()
   .set({ operation: 'adc', operand1: 'al', operand2: 'imm8' }, { opCode: '14', length: 'b' })
@@ -42,7 +42,7 @@ const ADC_TABLE = new HashMap<InstructionStructure, OpCode>()
   .set({ operation: 'adc', operand1: 'r32', operand2: 'm32' }, { opCode: '13' });
 
 export const ADC: AsmFunction = {
-  generateMachineCode: (op1?: string, op2?: string, ptrType?: ptrType) => {
-    return generateCode(op1, op2, 'adc', ptrType, [2], ADC_TABLE);
+  generateMachineCode: (op1?: string, op2?: string, ptrType?: PtrType) => {
+    return generateCode(op1, op2, 'adc', ptrType, ADC_TABLE);
   },
 };
