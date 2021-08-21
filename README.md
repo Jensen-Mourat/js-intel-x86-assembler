@@ -8,7 +8,9 @@ Import the `Assembler` class and call
 
 ``` 
 new Assembler().getMachineCode(instructions: Instruction[])
-
+```
+# Interface
+```
 interface Instruction {
     label?: string;
     operation: string;
